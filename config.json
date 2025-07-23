@@ -1,0 +1,47 @@
+{
+  "locationMapping": {
+    "GRAL": {
+      "fracttalWarehouseCode": "ALM-AMP",
+      "fracttalWarehouseName": "ALMACEN AMP",
+      "description": "Almacén General AMP",
+      "autoCreate": true,
+      "warehouseConfig": {
+        "description": "ALMACEN GENERAL AMP - Sincronizado desde Sage300",
+        "address": "Hacienda Nueva",
+        "state": "ZACATECAS",
+        "country": "México",
+        "city": "MORELOS, ZACATECAS",
+        "active": true,
+        "external_integration": true,
+        "visible_to_all": true,
+        "material_request_approval": false
+      }
+    }
+  },
+  "defaultWarehouse": {
+    "code": "ALM-AMP",
+    "name": "ALMACEN AMP",
+    "autoCreate": true
+  },
+  "syncSettings": {
+    "batchSize": 100,
+    "maxRetries": 3,
+    "retryDelay": 5000,
+    "logLevel": "info"
+  },
+  "warehouseCreationSettings": {
+    "enabled": true,
+    "nameTemplate": "ALMACEN {code}",
+    "descriptionTemplate": "Almacén auto-creado para ubicación {code}",
+    "prefix": "SAGE-",
+    "defaultValues": {
+      "active": true,
+      "external_integration": true,
+      "visible_to_all": true,
+      "material_request_approval": false,
+      "allow_negative_stock": false,
+      "state": "ZACATECAS",
+      "country": "México"
+    }
+  }
+}
