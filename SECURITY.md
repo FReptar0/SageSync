@@ -46,21 +46,25 @@ Para reportar una vulnerabilidad de seguridad:
 ## Áreas de Seguridad Críticas
 
 ### 🔐 Autenticación y Autorización
+
 - Tokens OAuth2 de Fracttal
 - Credenciales de base de datos Sage300
 - Almacenamiento seguro de credenciales
 
 ### 🗄️ Manejo de Datos
+
 - Conexiones a base de datos SQL Server
 - Transmisión de datos hacia API de Fracttal
 - Logs que pueden contener información sensible
 
 ### 🌐 Comunicaciones de Red
+
 - Conexiones HTTPS con Fracttal API
 - Conexiones TLS con SQL Server
 - Validación de certificados
 
 ### 📁 Sistema de Archivos
+
 - Archivos de configuración
 - Tokens persistentes
 - Logs y archivos temporales
@@ -70,6 +74,7 @@ Para reportar una vulnerabilidad de seguridad:
 ### Para Usuarios
 
 1. **Variables de Entorno**
+
    ```bash
    # ✅ Correcto - usar .env
    FRACTTAL_CLIENT_SECRET=your_secret_here
@@ -79,6 +84,7 @@ Para reportar una vulnerabilidad de seguridad:
    ```
 
 2. **Permisos de Archivos**
+
    ```bash
    # Proteger archivos sensibles
    chmod 600 .env
@@ -98,6 +104,7 @@ Para reportar una vulnerabilidad de seguridad:
 ### Para Desarrolladores
 
 1. **Validación de Entrada**
+
    ```javascript
    // Validar datos antes de procesar
    if (!itemCode || typeof itemCode !== 'string') {
@@ -106,6 +113,7 @@ Para reportar una vulnerabilidad de seguridad:
    ```
 
 2. **Manejo de Errores**
+
    ```javascript
    // No exponer información sensible en errores
    catch (error) {
@@ -117,6 +125,7 @@ Para reportar una vulnerabilidad de seguridad:
    ```
 
 3. **Sanitización**
+
    ```javascript
    // Sanitizar datos antes de queries SQL
    const cleanItemCode = itemCode.replace(/[^A-Za-z0-9]/g, '');
@@ -128,7 +137,7 @@ Para reportar una vulnerabilidad de seguridad:
 
 Asegúrese de que estos archivos estén protegidos:
 
-```
+```bash
 .env                 # Variables de entorno
 .fracttal-token      # Token OAuth2
 config.json          # Configuración (verificar datos sensibles)
@@ -161,6 +170,7 @@ SageSync registra eventos de seguridad relevantes:
 ### Monitoreo Recomendado
 
 1. **Monitorear archivos**:
+
    ```bash
    # Vigilar cambios en archivos críticos
    /path/to/sagesync/.env
@@ -177,7 +187,7 @@ SageSync registra eventos de seguridad relevantes:
 
 Para consultas relacionadas con seguridad:
 
-- **Email**: fmemije00@gmail.com
+- **Email**: <fmemije00@gmail.com>
 - **Asunto**: `[SECURITY] SageSync - Su consulta`
 - **Tiempo de respuesta**: 48 horas (días hábiles)
 

@@ -39,11 +39,11 @@ Los mantenedores del proyecto tienen el derecho y responsabilidad de remover, ed
 
 ## Aplicación
 
-Instancias de comportamiento abusivo, acosador, o de otra manera inaceptable pueden ser reportadas contactando al equipo del proyecto en fmemije00@gmail.com. Todas las quejas serán revisadas e investigadas y resultarán en una respuesta que se considere necesaria y apropiada a las circunstancias. El equipo del proyecto está obligado a mantener confidencialidad con respecto al reporte de un incidente.
+Instancias de comportamiento abusivo, acosador, o de otra manera inaceptable pueden ser reportadas contactando al equipo del proyecto en [fmemije00@gmail.com](mailto:fmemije00@gmail.com). Todas las quejas serán revisadas e investigadas y resultarán en una respuesta que se considere necesaria y apropiada a las circunstancias. El equipo del proyecto está obligado a mantener confidencialidad con respecto al reporte de un incidente.
 
 ### Proceso de Aplicación
 
-1. **Reporte**: Envíe un email detallado a fmemije00@gmail.com
+1. **Reporte**: Envíe un email detallado a [fmemije00@gmail.com](mailto:fmemije00@gmail.com)
 2. **Confirmación**: Recibirá confirmación dentro de 48 horas
 3. **Investigación**: Investigación completa dentro de 5 días hábiles
 4. **Resolución**: Acción apropiada tomada según la severidad
@@ -110,15 +110,15 @@ Las contribuciones al proyecto están sujetas a:
 
 ## Reconocimiento
 
-Este Código de Conducta está adaptado del [Contributor Covenant][homepage], versión 2.1, disponible en https://www.contributor-covenant.org/version/2/1/code_of_conduct.html.
+Este Código de Conducta está adaptado del [Contributor Covenant][homepage], versión 2.1, disponible en [https://www.contributor-covenant.org/version/2/1/code_of_conduct.html](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
 
-Para respuestas a preguntas comunes sobre este código de conducta, vea el FAQ en https://www.contributor-covenant.org/faq. Las traducciones están disponibles en https://www.contributor-covenant.org/translations.
+Para respuestas a preguntas comunes sobre este código de conducta, vea el FAQ en [https://www.contributor-covenant.org/faq](https://www.contributor-covenant.org/faq). Las traducciones están disponibles en [https://www.contributor-covenant.org/translations](https://www.contributor-covenant.org/translations).
 
 ## Contacto
 
 Para consultas sobre este Código de Conducta o reportar violaciones:
 
-- **Email**: fmemije00@gmail.com
+- **Email**: [fmemije00@gmail.com](mailto:fmemije00@gmail.com)
 - **Asunto**: `[CODE_OF_CONDUCT] SageSync - Su consulta`
 - **Respuesta esperada**: 48 horas (días hábiles)
 

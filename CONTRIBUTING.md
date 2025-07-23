@@ -16,7 +16,7 @@
 ### Antes de Contribuir
 
 1. **Contacto Inicial**
-   - Email: fmemije00@gmail.com
+   - Email: [fmemije00@gmail.com](mailto:fmemije00@gmail.com)
    - Asunto: `[CONTRIBUTING] SageSync - Solicitud de Contribución`
    - Incluye: Descripción de tu propuesta de contribución
 
@@ -241,15 +241,28 @@ Si es aplicable, agregue capturas de pantalla.
 - Sage300: [e.g. 2022]
 
 ## Logs
-```
+
+```mardown
 Incluir logs relevantes aquí
 ```
 
 ## Información Adicional
+
+```markdown
 Cualquier otra información sobre el problema.
 ```
 
 ### Feature Requests
+
+```markdown
+## Resumen del Feature
+Descripción breve del feature solicitado.
+
+## Motivación
+¿Por qué es necesario este feature? ¿Qué problema resuelve?
+
+## Descripción Detallada
+Descripción detallada de cómo debería funcionar.
 
 ```markdown
 ## Resumen del Feature
@@ -275,7 +288,7 @@ Ejemplos específicos de cómo se usaría.
 
 ### Para Contribuyentes
 
-- **Email**: fmemije00@gmail.com
+- **Email**: [fmemije00@gmail.com](mailto:fmemije00@gmail.com)
 - **Asunto**: `[CONTRIBUTING] SageSync - Su consulta`
 - **Respuesta**: 48-72 horas (días hábiles)
 
@@ -296,7 +309,7 @@ Los contribuyentes aprobados serán reconocidos en:
 
 ---
 
-**Gracias por tu interés en mejorar SageSync!** 
+**Gracias por tu interés en mejorar SageSync!**
 
 Tu contribución ayuda a hacer este proyecto mejor para toda la comunidad de usuarios de Sage300 y Fracttal.
 

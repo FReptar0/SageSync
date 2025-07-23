@@ -1,56 +1,56 @@
-LICENCIA COMERCIAL PROPIETARIA
+# LICENCIA COMERCIAL PROPIETARIA
 
-Copyright (c) 2025 Francisco Memije (fmemije00@gmail.com)
+Copyright (c) 2025 Francisco Memije (<fmemije00@gmail.com>)
 Todos los derechos reservados.
 
 TÉRMINOS Y CONDICIONES PARA USO, REPRODUCCIÓN Y DISTRIBUCIÓN
 
 1. DEFINICIONES
 
-"Licencia" se refiere a los términos y condiciones para uso, reproducción y 
+"Licencia" se refiere a los términos y condiciones para uso, reproducción y
 distribución definidos en las Secciones 1 a 9 de este documento.
 
-"Licenciante" se refiere al propietario del copyright o entidad autorizada por 
+"Licenciante" se refiere al propietario del copyright o entidad autorizada por
 el propietario del copyright que otorga la Licencia.
 
-"Entidad Legal" se refiere a la unión de la entidad actuante y todas las demás 
-entidades que controlan, son controladas por, o están bajo control común con 
+"Entidad Legal" se refiere a la unión de la entidad actuante y todas las demás
+entidades que controlan, son controladas por, o están bajo control común con
 esa entidad.
 
-"Usted" (o "Su") se refiere a un individuo o Entidad Legal ejerciendo permisos 
+"Usted" (o "Su") se refiere a un individuo o Entidad Legal ejerciendo permisos
 otorgados por esta Licencia.
 
-"Software" se refiere a SageSync y todos los archivos, código fuente, 
+"Software" se refiere a SageSync y todos los archivos, código fuente,
 documentación y materiales relacionados incluidos en este proyecto.
 
 2. CONCESIÓN DE DERECHOS
 
-Sujeto a los términos y condiciones de esta Licencia, el Licenciante por la 
-presente NO otorga ningún derecho gratuito para usar, copiar, modificar, 
+Sujeto a los términos y condiciones de esta Licencia, el Licenciante por la
+presente NO otorga ningún derecho gratuito para usar, copiar, modificar,
 fusionar, publicar, distribuir, sublicenciar y/o vender copias del Software.
 
 3. RESTRICCIONES
 
-a) PROHIBICIÓN DE USO SIN AUTORIZACIÓN: Está estrictamente prohibido usar, 
-   copiar, modificar, distribuir o crear trabajos derivados del Software sin 
+a) PROHIBICIÓN DE USO SIN AUTORIZACIÓN: Está estrictamente prohibido usar,
+   copiar, modificar, distribuir o crear trabajos derivados del Software sin
    autorización expresa y por escrito del Licenciante.
 
-b) PROHIBICIÓN DE INGENIERÍA INVERSA: Está prohibido realizar ingeniería 
+b) PROHIBICIÓN DE INGENIERÍA INVERSA: Está prohibido realizar ingeniería
    inversa, descompilar o desensamblar el Software.
 
-c) PROHIBICIÓN DE REDISTRIBUCIÓN: No puede redistribuir el Software bajo 
+c) PROHIBICIÓN DE REDISTRIBUCIÓN: No puede redistribuir el Software bajo
    ninguna circunstancia sin autorización expresa.
 
 4. SOLICITUD DE LICENCIA COMERCIAL
 
 Para obtener una licencia comercial para usar este Software:
 
-a) Contacte al Licenciante en: fmemije00@gmail.com
+a) Contacte al Licenciante en: <fmemije00@gmail.com>
 b) Proporcione detalles sobre el uso previsto
 c) Especifique el alcance y duración de la licencia solicitada
 d) Aguarde la respuesta y términos comerciales
 
-5. LICENCIAS DISPONIBLES
+1. LICENCIAS DISPONIBLES
 
 El Licenciante puede otorgar los siguientes tipos de licencias:
 
@@ -60,7 +60,7 @@ c) LICENCIA CORPORATIVA: Para uso múltiple dentro de una organización
 d) LICENCIA DE DESARROLLADOR: Para modificación y personalización
 e) LICENCIA OEM: Para integración en productos de terceros
 
-6. TÉRMINOS COMERCIALES
+1. TÉRMINOS COMERCIALES
 
 Todas las licencias comerciales están sujetas a:
 
@@ -69,13 +69,13 @@ b) Términos de soporte y mantenimiento
 c) Limitaciones de uso específicas
 d) Acuerdos de no divulgación cuando sea aplicable
 
-7. PROPIEDAD INTELECTUAL
+1. PROPIEDAD INTELECTUAL
 
 El Software y toda la propiedad intelectual relacionada, incluyendo pero no 
 limitado a patentes, derechos de autor, marcas comerciales y secretos 
 comerciales, son y permanecen como propiedad exclusiva del Licenciante.
 
-8. GARANTÍA Y RESPONSABILIDAD
+1. GARANTÍA Y RESPONSABILIDAD
 
 EL SOFTWARE SE PROPORCIONA "TAL COMO ESTÁ", SIN GARANTÍA DE NINGÚN TIPO, 
 EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A LAS GARANTÍAS DE 
@@ -86,24 +86,24 @@ U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRA
 MANERA, QUE SURJA DE, FUERA DE O EN CONEXIÓN CON EL SOFTWARE O EL USO U OTRAS 
 TRANSACCIONES EN EL SOFTWARE.
 
-9. TERMINACIÓN
+1. TERMINACIÓN
 
 Esta Licencia y los derechos otorgados bajo ella terminarán automáticamente 
 si Usted viola cualquiera de sus términos y condiciones. Al terminar, debe 
 cesar todo uso del Software y destruir todas las copias en su posesión.
 
-10. LEY APLICABLE
+1. LEY APLICABLE
 
 Esta Licencia se regirá e interpretará de acuerdo con las leyes de México, 
 sin tener en cuenta sus disposiciones sobre conflictos de leyes.
 
-11. CONTACTO
+1. CONTACTO
 
 Para consultas sobre licencias, soporte o cualquier otra cuestión relacionada 
 con este Software:
 
 Francisco Memije
-Email: fmemije00@gmail.com
+Email: <fmemije00@gmail.com>
 Proyecto: SageSync - Sincronizador Sage300 ↔ Fracttal
 
 ---
