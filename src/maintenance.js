@@ -2,13 +2,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const logger = require('./src/config/logger');
-const ConfigManager = require('./src/config/configManager');
+const logger = require('./config/logger');
+const ConfigManager = require('./config/configManager');
 
 class MaintenanceScript {
     constructor() {
         this.configManager = new ConfigManager();
-        this.rootDir = __dirname;
+        this.rootDir = path.dirname(__dirname); // Subir un nivel desde src/
         this.logsDir = path.join(this.rootDir, 'logs');
         this.tokenFile = path.join(this.rootDir, '.fracttal-token');
     }
@@ -160,7 +160,7 @@ class MaintenanceScript {
             console.log('🔄 Renovando token...');
             
             this.configManager.clearToken();
-            const FracttalClient = require('./src/services/fracttalClient');
+            const FracttalClient = require('./services/fracttalClient');
             const fracttal = new FracttalClient();
             
             await fracttal.authenticate();

@@ -128,6 +128,7 @@ npm run maintenance:backup
 SageSync/
 ├── src/
 │   ├── app.js                 # Aplicación principal
+│   ├── maintenance.js         # Script de mantenimiento
 │   ├── config/
 │   │   ├── configManager.js   # Gestor de configuración
 │   │   ├── database.js        # Conexión a Sage300
@@ -141,7 +142,6 @@ SageSync/
 │   └── integration/          # Tests de integración
 ├── logs/                     # Archivos de log
 ├── config.json              # Configuración principal
-├── maintenance.js           # Script de mantenimiento
 └── .fracttal-token         # Token OAuth2 (auto-generado)
 ```
 
