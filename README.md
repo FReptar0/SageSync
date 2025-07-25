@@ -51,6 +51,17 @@ FRACTTAL_CLIENT_SECRET=tu-client-secret
 # Configuración de sincronización
 SYNC_TIMEOUT=30000
 SYNC_CRON_SCHEDULE=0 2 * * *
+SYNC_ON_STARTUP=false # Si true, sincroniza al iniciar
+
+# Configuración de Logs
+LOG_LEVEL=info
+LOG_FILE=logs/sagesync.log
+LOG_MAX_SIZE=10m
+LOG_MAX_FILES=5
+
+# Configuración del Servidor
+PORT=3000
+NODE_ENV=production
 ```
 
 ### 3. Configurar mapeo de almacenes
