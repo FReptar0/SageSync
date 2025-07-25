@@ -38,7 +38,7 @@ const getSystemStatus = asyncHandler(async (req, res) => {
         status: 'running',
         sage: {
             connected: sageConnected,
-            database: process.env.DB_DATABASE
+            database: process.env.DB_NAME || 'N/A'
         },
         fracttal: {
             authenticated: !!fracttalToken,
