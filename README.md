@@ -1,5 +1,7 @@
 # SageSync - Sincronizador de Inventario Sage300 ↔ Fracttal
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/FReptar0/SageSync)
+
 Sistema de sincronización automática de inventario entre Sage300 y Fracttal para gestión eficiente de almacenes.
 
 ## 🚀 Características Principales
