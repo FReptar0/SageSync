@@ -71,35 +71,34 @@ d) Acuerdos de no divulgación cuando sea aplicable
 
 1. PROPIEDAD INTELECTUAL
 
-El Software y toda la propiedad intelectual relacionada, incluyendo pero no 
-limitado a patentes, derechos de autor, marcas comerciales y secretos 
+El Software y toda la propiedad intelectual relacionada, incluyendo pero no
+limitado a patentes, derechos de autor, marcas comerciales y secretos
 comerciales, son y permanecen como propiedad exclusiva del Licenciante.
 
 1. GARANTÍA Y RESPONSABILIDAD
 
-EL SOFTWARE SE PROPORCIONA "TAL COMO ESTÁ", SIN GARANTÍA DE NINGÚN TIPO, 
-EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A LAS GARANTÍAS DE 
+EL SOFTWARE SE PROPORCIONA "TAL COMO ESTÁ", SIN GARANTÍA DE NINGÚN TIPO,
+EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A LAS GARANTÍAS DE
 COMERCIABILIDAD, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
 
-EN NINGÚN CASO EL LICENCIANTE SERÁ RESPONSABLE POR CUALQUIER RECLAMO, DAÑOS 
-U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRA 
-MANERA, QUE SURJA DE, FUERA DE O EN CONEXIÓN CON EL SOFTWARE O EL USO U OTRAS 
+EN NINGÚN CASO EL LICENCIANTE SERÁ RESPONSABLE POR CUALQUIER RECLAMO, DAÑOS
+U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRA
+MANERA, QUE SURJA DE, FUERA DE O EN CONEXIÓN CON EL SOFTWARE O EL USO U OTRAS
 TRANSACCIONES EN EL SOFTWARE.
 
 1. TERMINACIÓN
-
-Esta Licencia y los derechos otorgados bajo ella terminarán automáticamente 
-si Usted viola cualquiera de sus términos y condiciones. Al terminar, debe 
+Esta Licencia y los derechos otorgados bajo ella terminarán automáticamente
+si Usted viola cualquiera de sus términos y condiciones. Al terminar, debe
 cesar todo uso del Software y destruir todas las copias en su posesión.
 
 1. LEY APLICABLE
 
-Esta Licencia se regirá e interpretará de acuerdo con las leyes de México, 
+Esta Licencia se regirá e interpretará de acuerdo con las leyes de México,
 sin tener en cuenta sus disposiciones sobre conflictos de leyes.
 
 1. CONTACTO
 
-Para consultas sobre licencias, soporte o cualquier otra cuestión relacionada 
+Para consultas sobre licencias, soporte o cualquier otra cuestión relacionada
 con este Software:
 
 Francisco Memije
