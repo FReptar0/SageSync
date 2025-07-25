@@ -100,10 +100,10 @@ class LogParser {
                         return {
                             file: fileName,
                             content: message,
-                            originalLine: line, // Mantener línea original para debugging
+                            originalLine: line,
                             timestamp: timestamp,
                             level: level,
-                            date: new Date(timestamp)
+                            date: this.parseTimestamp(timestamp)
                         };
                     });
 
@@ -111,9 +111,18 @@ class LogParser {
                     let filteredLines = parsedLines;
                     if (fromDate || toDate) {
                         filteredLines = parsedLines.filter(log => {
-                            const logDate = log.date;
-                            if (fromDate && logDate < new Date(fromDate)) return false;
-                            if (toDate && logDate > new Date(toDate)) return false;
+                            if (!log.date || isNaN(log.date.getTime())) return false;
+                            
+                            if (fromDate) {
+                                const fromDateTime = new Date(fromDate + 'T00:00:00.000Z');
+                                if (log.date < fromDateTime) return false;
+                            }
+                            
+                            if (toDate) {
+                                const toDateTime = new Date(toDate + 'T23:59:59.999Z');
+                                if (log.date > toDateTime) return false;
+                            }
+                            
                             return true;
                         });
                     }
@@ -121,7 +130,6 @@ class LogParser {
                     logContent.push(...filteredLines);
                 } catch (error) {
                     console.error(`Error leyendo archivo de log ${logFile}:`, error);
-                    // Agregar log de error para debugging
                     logContent.push({
                         file: path.basename(logFile),
                         content: `Error leyendo archivo: ${error.message}`,
@@ -131,7 +139,6 @@ class LogParser {
                     });
                 }
             } else {
-                // Agregar mensaje si el archivo no existe
                 logContent.push({
                     file: path.basename(logFile),
                     content: `Archivo de log no encontrado: ${logFile}`,
@@ -145,6 +152,27 @@ class LogParser {
         // Ordenar por timestamp descendente y limitar líneas
         logContent.sort((a, b) => b.date - a.date);
         return logContent.slice(0, parseInt(lines));
+    }
+
+    parseTimestamp(timestamp) {
+        if (!timestamp) return new Date();
+        
+        try {
+            // Intentar parsear directamente
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+            
+            // Si es formato "YYYY-MM-DD HH:mm:ss", agregar T y Z
+            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(timestamp)) {
+                return new Date(timestamp.replace(' ', 'T') + 'Z');
+            }
+            
+            return new Date();
+        } catch (e) {
+            return new Date();
+        }
     }
 
     getLogFiles(type) {
@@ -161,34 +189,45 @@ class LogParser {
     }
 
     async getLogsByDate(date, type = 'all') {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const fromDate = startOfDay.toISOString();
-        const toDate = endOfDay.toISOString();
-        
-        return await this.readLogs(type, 1000, fromDate, toDate);
+        try {
+            // Validar formato de fecha
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                throw new Error(`Formato de fecha inválido: ${date}. Esperado: YYYY-MM-DD`);
+            }
+            
+            const startOfDay = new Date(date + 'T00:00:00.000Z');
+            const endOfDay = new Date(date + 'T23:59:59.999Z');
+            
+            if (isNaN(startOfDay.getTime()) || isNaN(endOfDay.getTime())) {
+                throw new Error(`Fecha inválida: ${date}`);
+            }
+            
+            const fromDate = date; // YYYY-MM-DD format
+            const toDate = date;   // YYYY-MM-DD format
+            
+            return await this.readLogs(type, 1000, fromDate, toDate);
+        } catch (error) {
+            console.error('Error en getLogsByDate:', error);
+            throw error;
+        }
     }
 
     async getAvailableDates(type = 'all') {
         try {
-            const logs = await this.readLogs(type, 10000); // Obtener muchos logs para análisis
+            const logs = await this.readLogs(type, 10000);
             const dates = new Set();
             
             logs.forEach(log => {
-                if (log.timestamp) {
-                    const date = new Date(log.timestamp);
-                    if (!isNaN(date.getTime())) {
-                        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
-                        dates.add(dateString);
-                    }
+                if (log.timestamp && log.date && !isNaN(log.date.getTime())) {
+                    const dateString = log.date.toISOString().split('T')[0]; // YYYY-MM-DD
+                    dates.add(dateString);
                 }
             });
             
-            return Array.from(dates).sort().reverse(); // Más recientes primero
+            const sortedDates = Array.from(dates).sort().reverse(); // Más recientes primero
+            console.log(`DEBUG: Fechas disponibles encontradas: ${sortedDates.length}`, sortedDates);
+            
+            return sortedDates;
         } catch (error) {
             console.error('Error obteniendo fechas disponibles:', error);
             return [];
