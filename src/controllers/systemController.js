@@ -7,6 +7,26 @@ const getSystemStatus = asyncHandler(async (req, res) => {
     const sageConnected = await sage.validateConnection();
     const fracttalToken = await fracttal.getAccessToken();
     
+    // Obtener información más detallada de Sage
+    let sageInfo = {
+        connected: sageConnected,
+        database: process.env.DB_NAME || 'N/A',
+        server: process.env.DB_HOST || 'N/A',
+        port: process.env.DB_PORT || '1433'
+    };
+    
+    // Si está conectado, obtener información adicional
+    if (sageConnected) {
+        try {
+            const dbInfo = await sage.getConnectionInfo();
+            if (dbInfo) {
+                sageInfo = { ...sageInfo, ...dbInfo };
+            }
+        } catch (error) {
+            console.log('No se pudo obtener información adicional de la BD:', error.message);
+        }
+    }
+    
     // Verificar estado de módulos de Fracttal
     let fracttalModules = {
         warehouses: false,
@@ -36,10 +56,7 @@ const getSystemStatus = asyncHandler(async (req, res) => {
     
     res.json({
         status: 'running',
-        sage: {
-            connected: sageConnected,
-            database: process.env.DB_NAME || 'N/A'
-        },
+        sage: sageInfo,
         fracttal: {
             authenticated: !!fracttalToken,
             baseUrl: process.env.FRACTTAL_BASE_URL,

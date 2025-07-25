@@ -235,6 +235,33 @@ class SageService {
             return false;
         }
     }
+
+    async getConnectionInfo() {
+        try {
+            // Obtener información de la conexión actual
+            const query = `
+                SELECT 
+                    DB_NAME() as CurrentDatabase,
+                    @@SERVERNAME as ServerName,
+                    @@VERSION as ServerVersion,
+                    GETDATE() as CurrentTime,
+                    USER_NAME() as CurrentUser
+            `;
+            const result = await database.query(query);
+            const info = result.recordset[0];
+            
+            return {
+                database: info.CurrentDatabase,
+                server: info.ServerName,
+                version: info.ServerVersion?.substring(0, 50) + '...', // Truncar versión
+                currentUser: info.CurrentUser,
+                connectionTime: info.CurrentTime
+            };
+        } catch (error) {
+            logger.error('Error obteniendo información de conexión:', error);
+            return null;
+        }
+    }
 }
 
 module.exports = SageService;

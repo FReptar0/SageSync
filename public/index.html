@@ -722,6 +722,16 @@
                     <span class="status-value">${data.sage.database || 'N/A'}</span>
                 </div>
                 <div class="status-item">
+                    <span class="status-label">Servidor SQL:</span>
+                    <span class="status-value">${data.sage.server || 'N/A'}</span>
+                </div>
+                ${data.sage.currentUser ? `
+                <div class="status-item">
+                    <span class="status-label">Usuario BD:</span>
+                    <span class="status-value">${data.sage.currentUser}</span>
+                </div>
+                ` : ''}
+                <div class="status-item">
                     <span class="status-label">Fracttal:</span>
                     <span class="status-value ${data.fracttal.authenticated ? 'status-connected' : 'status-disconnected'}">
                         ${data.fracttal.authenticated ? 'Autenticado' : 'No Autenticado'}
