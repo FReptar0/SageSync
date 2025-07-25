@@ -271,12 +271,20 @@
                     </span>
                 </div>
                 <div class="status-item">
+                    <span class="status-label">Programada:</span>
+                    <span class="status-value">${data.sync.schedule || 'No configurada'}</span>
+                </div>
+                <div class="status-item">
                     <span class="status-label">Última Sync:</span>
                     <span class="status-value">
                         ${data.sync.stats.lastSyncTime ? 
                             new Date(data.sync.stats.lastSyncTime).toLocaleString() : 
                             'Nunca'}
                     </span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Total Ejecutadas:</span>
+                    <span class="status-value">${data.sync.stats.totalSyncs || 0} (${data.sync.stats.successfulSyncs || 0} exitosas)</span>
                 </div>
             `;
             
