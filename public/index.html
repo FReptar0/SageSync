@@ -180,7 +180,7 @@
         }
         
         .log-container {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             background-color: #2c3e50;
             color: #ecf0f1;
@@ -188,6 +188,61 @@
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 2px;
+            padding: 2px 0;
+            line-height: 1.4;
+        }
+        
+        .log-time {
+            color: #95a5a6;
+            font-weight: bold;
+        }
+        
+        .log-file {
+            color: #3498db;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        
+        .log-content {
+            color: #ecf0f1;
+        }
+        
+        .log-error {
+            border-left: 3px solid #e74c3c;
+            padding-left: 8px;
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+        
+        .log-error .log-content {
+            color: #e74c3c;
+        }
+        
+        .log-warn {
+            border-left: 3px solid #f39c12;
+            padding-left: 8px;
+            background-color: rgba(243, 156, 18, 0.1);
+        }
+        
+        .log-warn .log-content {
+            color: #f39c12;
+        }
+        
+        .log-info {
+            border-left: 3px solid #27ae60;
+            padding-left: 8px;
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+        
+        .log-info .log-content {
+            color: #27ae60;
+        }
+        
+        .log-default {
+            color: #bdc3c7;
         }
     </style>
 </head>
@@ -230,8 +285,22 @@
         
         <div class="card">
             <h2>Actividad Reciente</h2>
+            <div style="margin-bottom: 15px;">
+                <button class="button" onclick="refreshLogs()">🔄 Actualizar</button>
+                <select id="log-type" onchange="refreshLogs()" style="margin-left: 10px; padding: 5px;">
+                    <option value="all">Todos los Logs</option>
+                    <option value="app">Solo Aplicación</option>
+                    <option value="error">Solo Errores</option>
+                </select>
+                <select id="log-lines" onchange="refreshLogs()" style="margin-left: 10px; padding: 5px;">
+                    <option value="50">50 líneas</option>
+                    <option value="100" selected>100 líneas</option>
+                    <option value="200">200 líneas</option>
+                    <option value="500">500 líneas</option>
+                </select>
+            </div>
             <div id="recent-activity" class="log-container">
-                <div class="loading">No hay actividad reciente...</div>
+                <div class="loading">Cargando logs...</div>
             </div>
         </div>
     </div>
@@ -459,13 +528,99 @@
             }
         }
         
+        async function fetchLogs() {
+            try {
+                const logType = document.getElementById('log-type').value;
+                const logLines = document.getElementById('log-lines').value;
+                
+                const response = await fetch(`/api/logs?type=${logType}&lines=${logLines}`);
+                const data = await response.json();
+                updateLogs(data);
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                document.getElementById('recent-activity').innerHTML = 
+                    '<div class="error">Error cargando logs del sistema</div>';
+            }
+        }
+        
+        function updateLogs(data) {
+            const logsContainer = document.getElementById('recent-activity');
+            
+            if (!data.logs || data.logs.length === 0) {
+                logsContainer.innerHTML = '<div class="loading">No hay logs disponibles...</div>';
+                return;
+            }
+            
+            let logsHtml = '';
+            data.logs.forEach(log => {
+                const logClass = getLogClass(log.content);
+                const timeFormatted = formatLogTime(log.timestamp);
+                const fileName = log.file.replace('.log', '');
+                
+                logsHtml += `<div class="log-entry ${logClass}">
+                    <span class="log-time">[${timeFormatted}]</span>
+                    <span class="log-file">[${fileName}]</span>
+                    <span class="log-content">${escapeHtml(log.content)}</span>
+                </div>`;
+            });
+            
+            logsContainer.innerHTML = logsHtml;
+            // Auto-scroll al final
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        function getLogClass(content) {
+            const lowerContent = content.toLowerCase();
+            if (lowerContent.includes('error') || lowerContent.includes('❌')) {
+                return 'log-error';
+            } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️')) {
+                return 'log-warn';
+            } else if (lowerContent.includes('info') || lowerContent.includes('✅')) {
+                return 'log-info';
+            }
+            return 'log-default';
+        }
+        
+        function formatLogTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit'
+                });
+            } catch (e) {
+                return timestamp.substring(0, 19);
+            }
+        }
+        
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        function refreshLogs() {
+            fetchLogs();
+        }
+        
         // Inicializar dashboard
         document.addEventListener('DOMContentLoaded', function() {
             fetchStatus();
             fetchInventoryStats();
+            fetchLogs();
             
             // Actualizar estado cada 30 segundos
             statusInterval = setInterval(fetchStatus, 30000);
+            
+            // Actualizar logs cada 60 segundos
+            setInterval(fetchLogs, 60000);
         });
         
         // Limpiar intervalo al cerrar página

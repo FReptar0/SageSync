@@ -260,6 +260,63 @@ app.get('/api/fracttal/warehouses', async (req, res) => {
     }
 });
 
+// Obtener logs del sistema
+app.get('/api/logs', async (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const { lines = 100, type = 'all' } = req.query;
+        
+        const logsDir = path.join(__dirname, '../logs');
+        let logContent = [];
+        
+        // Leer diferentes tipos de logs
+        const logFiles = [];
+        if (type === 'all' || type === 'app') {
+            logFiles.push(path.join(logsDir, 'sagesync.log'));
+        }
+        if (type === 'all' || type === 'error') {
+            logFiles.push(path.join(logsDir, 'error.log'));
+        }
+        
+        for (const logFile of logFiles) {
+            if (fs.existsSync(logFile)) {
+                const content = fs.readFileSync(logFile, 'utf8');
+                const fileLines = content.split('\n').filter(line => line.trim());
+                
+                // Agregar identificador del archivo
+                const fileName = path.basename(logFile);
+                logContent.push(...fileLines.map(line => ({
+                    file: fileName,
+                    content: line,
+                    timestamp: extractTimestamp(line)
+                })));
+            }
+        }
+        
+        // Ordenar por timestamp y limitar líneas
+        logContent.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        logContent = logContent.slice(0, parseInt(lines));
+        
+        res.json({
+            logs: logContent,
+            totalLines: logContent.length,
+            requestedLines: parseInt(lines),
+            logType: type
+        });
+    } catch (error) {
+        logger.error('Error obteniendo logs:', error);
+        res.status(500).json({ error: 'Error obteniendo logs del sistema' });
+    }
+});
+
+// Función auxiliar para extraer timestamp de línea de log
+function extractTimestamp(logLine) {
+    const timestampRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
+    const match = logLine.match(timestampRegex);
+    return match ? match[0] : new Date().toISOString();
+}
+
 // Manejo de errores global
 app.use((error, req, res, next) => {
     logger.error('Error no manejado en la aplicación:', error);
