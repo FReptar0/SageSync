@@ -38,6 +38,30 @@ class FracttalClient {
             async (error) => {
                 const originalRequest = error.config;
                 
+                // Verificar si es error UNAUTHORIZED_ENDPOINT
+                if (error.response && 
+                    error.response.status === 401 && 
+                    error.response.data?.message === 'UNAUTHORIZED_ENDPOINT') {
+                    
+                    const errorMsg = `🚫 ENDPOINT NO AUTORIZADO: ${originalRequest.url}`;
+                    console.error(errorMsg);
+                    console.error('💡 Este endpoint no está disponible con las credenciales actuales');
+                    console.error('📞 Contacta a Fracttal para habilitar el módulo necesario');
+                    
+                    logger.error('UNAUTHORIZED_ENDPOINT detected', {
+                        endpoint: originalRequest.url,
+                        method: originalRequest.method,
+                        message: 'Endpoint no autorizado - posible falta de permisos o módulo no habilitado'
+                    });
+                    
+                    // No intentar renovar token para este tipo de error
+                    const unauthorizedError = new Error(`Endpoint no autorizado: ${originalRequest.url}`);
+                    unauthorizedError.isUnauthorizedEndpoint = true;
+                    unauthorizedError.endpoint = originalRequest.url;
+                    return Promise.reject(unauthorizedError);
+                }
+                
+                // Manejo normal de errores 401 (token expirado)
                 if (error.response && error.response.status === 401 && !originalRequest._retry) {
                     originalRequest._retry = true;
                     
@@ -458,6 +482,15 @@ class FracttalClient {
                 return warehouse.data;
             }
         } catch (error) {
+            // Verificar si es error UNAUTHORIZED_ENDPOINT
+            if (error.isUnauthorizedEndpoint) {
+                const errorMsg = `🚫 MÓDULO DE ALMACENES NO HABILITADO: No se puede acceder a /warehouses/${warehouseCode}`;
+                console.error(errorMsg);
+                console.error('📞 Solución: Contacta a Fracttal para habilitar el módulo de Inventarios/Almacenes');
+                logger.error('Warehouse module not enabled', { warehouseCode, endpoint: error.endpoint });
+                throw new Error(`Módulo de almacenes no habilitado en tu cuenta de Fracttal. Contacta soporte.`);
+            }
+            
             // Si es 404, el almacén no existe, continuar con la creación
             if (error.response && error.response.status !== 404) {
                 console.error(`❌ Error verificando almacén ${warehouseCode}:`, error.message);

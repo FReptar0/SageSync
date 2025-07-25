@@ -281,6 +281,26 @@
             `;
             
             const connectionsStatus = document.getElementById('connections-status');
+            let fracttalModulesHtml = '';
+            
+            if (data.fracttal.modules) {
+                const modules = data.fracttal.modules;
+                fracttalModulesHtml = `
+                    <div class="status-item">
+                        <span class="status-label">Módulo Almacenes:</span>
+                        <span class="status-value ${getModuleStatusClass(modules.warehouses)}">
+                            ${getModuleStatusText(modules.warehouses)}
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Módulo Inventarios:</span>
+                        <span class="status-value ${getModuleStatusClass(modules.inventories)}">
+                            ${getModuleStatusText(modules.inventories)}
+                        </span>
+                    </div>
+                `;
+            }
+            
             connectionsStatus.innerHTML = `
                 <div class="status-item">
                     <span class="status-label">Sage300:</span>
@@ -302,6 +322,7 @@
                     <span class="status-label">API URL:</span>
                     <span class="status-value">${data.fracttal.baseUrl || 'N/A'}</span>
                 </div>
+                ${fracttalModulesHtml}
             `;
             
             // Actualizar botón de sincronización
@@ -313,6 +334,18 @@
                 syncBtn.disabled = false;
                 syncBtn.textContent = 'Iniciar Sincronización Manual';
             }
+        }
+        
+        function getModuleStatusClass(status) {
+            if (status === true) return 'status-connected';
+            if (status === 'UNAUTHORIZED_ENDPOINT') return 'status-disconnected';
+            return 'status-disconnected';
+        }
+        
+        function getModuleStatusText(status) {
+            if (status === true) return 'Habilitado';
+            if (status === 'UNAUTHORIZED_ENDPOINT') return 'No Autorizado';
+            return 'Desconectado';
         }
         
         async function fetchInventoryStats() {

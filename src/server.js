@@ -40,6 +40,31 @@ app.get('/api/status', async (req, res) => {
         const sageConnected = await sage.validateConnection();
         const fracttalToken = await fracttal.getAccessToken();
         
+        // Verificar estado de módulos de Fracttal
+        let fracttalModules = {
+            warehouses: false,
+            inventories: false,
+            items: false
+        };
+        
+        try {
+            await fracttal.getAllWarehouses();
+            fracttalModules.warehouses = true;
+        } catch (error) {
+            if (error.isUnauthorizedEndpoint) {
+                fracttalModules.warehouses = 'UNAUTHORIZED_ENDPOINT';
+            }
+        }
+        
+        try {
+            await fracttal.getAllInventories();
+            fracttalModules.inventories = true;
+        } catch (error) {
+            if (error.isUnauthorizedEndpoint) {
+                fracttalModules.inventories = 'UNAUTHORIZED_ENDPOINT';
+            }
+        }
+        
         res.json({
             status: 'running',
             sage: {
@@ -48,7 +73,8 @@ app.get('/api/status', async (req, res) => {
             },
             fracttal: {
                 authenticated: !!fracttalToken,
-                baseUrl: process.env.FRACTTAL_BASE_URL
+                baseUrl: process.env.FRACTTAL_BASE_URL,
+                modules: fracttalModules
             },
             sync: {
                 inProgress: syncInProgress,
