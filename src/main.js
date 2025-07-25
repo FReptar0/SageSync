@@ -1,356 +1,97 @@
 const express = require('express');
-const { syncInventory } = require('./app');
-const SageService = require('./services/sageService');
-const FracttalClient = require('./services/fracttalClient');
-const logger = require('./config/logger');
 const path = require('path');
 const cron = require('node-cron');
-require('dotenv').config();
+
+// Configuración y servicios
+const config = require('./config/server');
+const logger = require('./config/logger');
+const SageService = require('./services/sageService');
+const FracttalClient = require('./services/fracttalClient');
+const SyncStateManager = require('./services/syncStateManager');
+
+// Rutas y middleware
+const apiRoutes = require('./routes');
+const { errorHandler } = require('./middleware/errorHandler');
+const { runSyncWithTracking } = require('./controllers/syncController');
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-// Middleware
+// Middleware básico
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Variables para tracking del estado
-let syncInProgress = false;
-let lastSyncResult = null;
-let syncStats = {
-    totalSyncs: 0,
-    successfulSyncs: 0,
-    failedSyncs: 0,
-    lastSyncTime: null
-};
-
-// Instancias de servicios
+// Inicializar servicios
 const sage = new SageService();
 const fracttal = new FracttalClient();
+const syncStateManager = new SyncStateManager();
 
-// Función wrapper para la sincronización con tracking de estado
-async function runSyncWithTracking() {
-    if (syncInProgress) {
-        logger.warn('Sincronización ya en progreso, saltando...');
-        return;
-    }
-
-    syncInProgress = true;
-    const startTime = new Date();
-    
-    try {
-        console.log('\n🔄 Iniciando sincronización programada...');
-        logger.info('Iniciando sincronización programada');
-        
-        const result = await syncInventory();
-        
-        syncStats.totalSyncs++;
-        syncStats.successfulSyncs++;
-        syncStats.lastSyncTime = startTime.toISOString();
-        lastSyncResult = {
-            success: true,
-            timestamp: startTime.toISOString(),
-            duration: Date.now() - startTime.getTime(),
-            ...result
-        };
-        
-        console.log('✅ Sincronización completada exitosamente');
-        logger.info('Sincronización programada completada exitosamente');
-        
-    } catch (error) {
-        syncStats.totalSyncs++;
-        syncStats.failedSyncs++;
-        lastSyncResult = {
-            success: false,
-            timestamp: startTime.toISOString(),
-            duration: Date.now() - startTime.getTime(),
-            error: error.message
-        };
-        
-        console.error('❌ Error en sincronización programada:', error.message);
-        logger.error('Error en sincronización programada:', error);
-        
-    } finally {
-        syncInProgress = false;
-    }
-}
+// Hacer servicios disponibles globalmente en la app
+app.locals.sage = sage;
+app.locals.fracttal = fracttal;
+app.locals.syncStateManager = syncStateManager;
+app.locals.cronSchedule = config.syncSchedule;
 
 // Programar sincronización automática
-const cronSchedule = process.env.SYNC_CRON_SCHEDULE || '0 2 * * *';
-console.log(`📅 Sincronización programada: ${cronSchedule}`);
-cron.schedule(cronSchedule, runSyncWithTracking);
+console.log(`📅 Sincronización programada: ${config.syncSchedule}`);
+cron.schedule(config.syncSchedule, async () => {
+    try {
+        if (!syncStateManager.isInProgress()) {
+            console.log('\n🔄 Ejecutando sincronización programada...');
+            await runSyncWithTracking(syncStateManager);
+        } else {
+            logger.warn('Sincronización programada saltada - ya hay una en progreso');
+        }
+    } catch (error) {
+        logger.error('Error en sincronización programada:', error);
+    }
+});
 
-// Rutas de la API
-
-// Dashboard principal
+// Rutas principales
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Estado del sistema
-app.get('/api/status', async (req, res) => {
-    try {
-        const sageConnected = await sage.validateConnection();
-        const fracttalToken = await fracttal.getAccessToken();
-        
-        // Verificar estado de módulos de Fracttal
-        let fracttalModules = {
-            warehouses: false,
-            inventories: false,
-            items: false
-        };
-        
-        try {
-            await fracttal.getAllWarehouses();
-            fracttalModules.warehouses = true;
-        } catch (error) {
-            if (error.isUnauthorizedEndpoint) {
-                fracttalModules.warehouses = 'UNAUTHORIZED_ENDPOINT';
-            }
-        }
-        
-        try {
-            await fracttal.getAllInventories();
-            fracttalModules.inventories = true;
-        } catch (error) {
-            if (error.isUnauthorizedEndpoint) {
-                fracttalModules.inventories = 'UNAUTHORIZED_ENDPOINT';
-            }
-        }
-        
-        res.json({
-            status: 'running',
-            sage: {
-                connected: sageConnected,
-                database: process.env.DB_DATABASE
-            },
-            fracttal: {
-                authenticated: !!fracttalToken,
-                baseUrl: process.env.FRACTTAL_BASE_URL,
-                modules: fracttalModules
-            },
-            sync: {
-                inProgress: syncInProgress,
-                stats: syncStats,
-                lastResult: lastSyncResult,
-                schedule: cronSchedule
-            },
-            uptime: process.uptime(),
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('Error obteniendo status:', error);
-        res.status(500).json({ error: 'Error obteniendo status del sistema' });
-    }
-});
+// Montar rutas de la API
+app.use('/api', apiRoutes);
 
-// Estadísticas de inventario de Sage300
-app.get('/api/sage/stats', async (req, res) => {
-    try {
-        const stats = await sage.getInventoryStats();
-        const locations = await sage.getUniqueLocations();
-        
-        res.json({
-            ...stats,
-            locations: locations.length,
-            locationList: locations
-        });
-    } catch (error) {
-        logger.error('Error obteniendo estadísticas de Sage:', error);
-        res.status(500).json({ error: 'Error obteniendo estadísticas de Sage300' });
-    }
-});
-
-// Sincronización manual
-app.post('/api/sync', async (req, res) => {
-    if (syncInProgress) {
-        return res.status(409).json({ 
-            error: 'Sincronización ya en progreso',
-            inProgress: true 
-        });
-    }
-
-    try {
-        // Ejecutar sincronización en background
-        runSyncWithTracking();
-        
-        res.json({ 
-            message: 'Sincronización iniciada',
-            inProgress: true 
-        });
-    } catch (error) {
-        logger.error('Error iniciando sincronización manual:', error);
-        res.status(500).json({ error: 'Error iniciando sincronización' });
-    }
-});
-
-// Probar conexiones
-app.get('/api/test/connections', async (req, res) => {
-    try {
-        const results = {
-            sage: { connected: false, status: '', error: null },
-            fracttal: { authenticated: false, status: '', error: null }
-        };
-
-        // Probar Sage300
-        try {
-            results.sage.connected = await sage.validateConnection();
-            results.sage.status = results.sage.connected ? 'Conectado' : 'Desconectado';
-        } catch (sageError) {
-            results.sage.error = sageError.message;
-            results.sage.status = 'Error de conexión';
-        }
-
-        // Probar Fracttal
-        try {
-            const token = await fracttal.getAccessToken();
-            results.fracttal.authenticated = !!token;
-            results.fracttal.status = results.fracttal.authenticated ? 'Autenticado' : 'No autenticado';
-        } catch (fracttalError) {
-            results.fracttal.error = fracttalError.message;
-            results.fracttal.status = 'Error de autenticación';
-        }
-
-        res.json(results);
-    } catch (error) {
-        logger.error('Error probando conexiones:', error);
-        res.status(500).json({ error: 'Error probando conexiones' });
-    }
-});
-
-// Items de inventario por ubicación
-app.get('/api/sage/inventory/:location?', async (req, res) => {
-    try {
-        const { location } = req.params;
-        const { limit = 50, offset = 0 } = req.query;
-        
-        let items;
-        if (location) {
-            items = await sage.getInventoryItemsByLocation(location);
-        } else {
-            items = await sage.getAllInventoryItems();
-        }
-        
-        // Paginación simple
-        const startIndex = parseInt(offset);
-        const limitNum = parseInt(limit);
-        const paginatedItems = items.slice(startIndex, startIndex + limitNum);
-        
-        res.json({
-            items: paginatedItems,
-            total: items.length,
-            offset: startIndex,
-            limit: limitNum,
-            hasMore: startIndex + limitNum < items.length
-        });
-    } catch (error) {
-        logger.error('Error obteniendo items de inventario:', error);
-        res.status(500).json({ error: 'Error obteniendo items de inventario' });
-    }
-});
-
-// Información de almacenes de Fracttal
-app.get('/api/fracttal/warehouses', async (req, res) => {
-    try {
-        const warehouses = await fracttal.getWarehouses();
-        res.json(warehouses);
-    } catch (error) {
-        logger.error('Error obteniendo almacenes de Fracttal:', error);
-        res.status(500).json({ error: 'Error obteniendo almacenes de Fracttal' });
-    }
-});
-
-// Obtener logs del sistema
-app.get('/api/logs', async (req, res) => {
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const { lines = 100, type = 'all' } = req.query;
-        
-        const logsDir = path.join(__dirname, '../logs');
-        let logContent = [];
-        
-        // Leer diferentes tipos de logs
-        const logFiles = [];
-        if (type === 'all' || type === 'app') {
-            logFiles.push(path.join(logsDir, 'sagesync.log'));
-        }
-        if (type === 'all' || type === 'error') {
-            logFiles.push(path.join(logsDir, 'error.log'));
-        }
-        
-        for (const logFile of logFiles) {
-            if (fs.existsSync(logFile)) {
-                const content = fs.readFileSync(logFile, 'utf8');
-                const fileLines = content.split('\n').filter(line => line.trim());
-                
-                // Agregar identificador del archivo
-                const fileName = path.basename(logFile);
-                logContent.push(...fileLines.map(line => ({
-                    file: fileName,
-                    content: line,
-                    timestamp: extractTimestamp(line)
-                })));
-            }
-        }
-        
-        // Ordenar por timestamp y limitar líneas
-        logContent.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-        logContent = logContent.slice(0, parseInt(lines));
-        
-        res.json({
-            logs: logContent,
-            totalLines: logContent.length,
-            requestedLines: parseInt(lines),
-            logType: type
-        });
-    } catch (error) {
-        logger.error('Error obteniendo logs:', error);
-        res.status(500).json({ error: 'Error obteniendo logs del sistema' });
-    }
-});
-
-// Función auxiliar para extraer timestamp de línea de log
-function extractTimestamp(logLine) {
-    const timestampRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
-    const match = logLine.match(timestampRegex);
-    return match ? match[0] : new Date().toISOString();
-}
-
-// Manejo de errores global
-app.use((error, req, res, next) => {
-    logger.error('Error no manejado en la aplicación:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-});
+// Middleware de manejo de errores (debe ir al final)
+app.use(errorHandler);
 
 // Iniciar servidor
-app.listen(port, () => {
+app.listen(config.port, () => {
     console.log('\n' + '='.repeat(60));
     console.log('🚀 SageSync Server iniciado exitosamente!');
-    console.log(`📍 Dashboard disponible en: http://localhost:${port}`);
-    console.log(`📅 Sincronización programada: ${cronSchedule}`);
+    console.log(`📍 Dashboard disponible en: http://localhost:${config.port}`);
+    console.log(`📅 Sincronización programada: ${config.syncSchedule}`);
     console.log('='.repeat(60));
     
-    logger.info(`SageSync Server iniciado en puerto ${port}`);
+    logger.info(`SageSync Server iniciado en puerto ${config.port}`);
     
-    // Ejecutar una sincronización inicial si está habilitada
-    if (process.env.SYNC_ON_STARTUP === 'true') {
+    // Ejecutar sincronización inicial si está habilitada
+    if (config.syncOnStartup) {
         console.log('\n🔄 Ejecutando sincronización inicial...');
-        setTimeout(runSyncWithTracking, 5000); // Dar tiempo para que se inicialice todo
+        setTimeout(async () => {
+            try {
+                await runSyncWithTracking(syncStateManager);
+            } catch (error) {
+                logger.error('Error en sincronización inicial:', error);
+            }
+        }, 5000);
     }
 });
 
 // Manejo de cierre graceful
-process.on('SIGINT', () => {
-    console.log('\n👋 Cerrando SageSync Server...');
-    logger.info('SageSync Server cerrando...');
+const gracefulShutdown = (signal) => {
+    console.log(`\n👋 Cerrando SageSync Server (${signal})...`);
+    logger.info(`SageSync Server cerrando por señal ${signal}`);
+    
+    // Aquí podrías agregar lógica adicional de limpieza
+    // como cerrar conexiones de base de datos, finalizar sincronizaciones, etc.
+    
     process.exit(0);
-});
+};
 
-process.on('SIGTERM', () => {
-    console.log('\n👋 Cerrando SageSync Server...');
-    logger.info('SageSync Server cerrando...');
-    process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 module.exports = app;
