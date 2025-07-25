@@ -196,16 +196,16 @@ SageSync/
 
 ```json
 {
-  \"specialRules\": [
+  "specialRules": [
     {
-      \"name\": \"Items Peligrosos\",
-      \"keywords\": [\"EXPLOSIV\", \"QUÍMICO\", \"TÓXICO\"],
-      \"fracttalWarehouseCode\": \"ALM-SEGURIDAD\"
+      "name": "Items Peligrosos",
+      "keywords": ["EXPLOSIV", "QUÍMICO", "TÓXICO"],
+      "fracttalWarehouseCode": "ALM-SEGURIDAD"
     },
     {
-      \"name\": \"Herramientas\",
-      \"keywords\": [\"HERRAMIENTA\", \"EQUIPO\"],
-      \"fracttalWarehouseCode\": \"ALM-HERRAMIENTAS\"
+      "name": "Herramientas",
+      "keywords": ["HERRAMIENTA", "EQUIPO"],
+      "fracttalWarehouseCode": "ALM-HERRAMIENTAS"
     }
   ]
 }
