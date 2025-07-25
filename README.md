@@ -59,15 +59,15 @@ El archivo `config.json` ya está preconfigurado para usar solo ubicación GRAL:
 
 ```json
 {
-  \"locationMapping\": {
-    \"GRAL\": {
-      \"fracttalWarehouseCode\": \"ALM-AMP\",
-      \"name\": \"Almacén Principal\",
-      \"specialRules\": [
+  "locationMapping": {
+    "GRAL": {
+      "fracttalWarehouseCode": "ALM-AMP",
+      "name": "Almacén Principal",
+      "specialRules": [
         {
-          \"name\": \"Items Explosivos\",
-          \"keywords\": [\"EXPLOSIV\", \"DETONANTE\", \"FULMINANTE\", \"MECHA\", \"NONEL\"],
-          \"fracttalWarehouseCode\": \"ALM-AMP\"
+          "name": "Items Explosivos",
+          "keywords": ["EXPLOSIV", "DETONANTE", "FULMINANTE", "MECHA", "NONEL"],
+          "fracttalWarehouseCode": "ALM-AMP"
         }
       ]
     }
