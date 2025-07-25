@@ -7,7 +7,17 @@ class LogParser {
     }
 
     extractTimestamp(logLine) {
-        // Múltiples formatos de timestamp
+        // Primero intentar parsear como JSON
+        try {
+            const logObj = JSON.parse(logLine);
+            if (logObj.timestamp) {
+                return logObj.timestamp;
+            }
+        } catch (e) {
+            // Si no es JSON, usar regex patterns
+        }
+        
+        // Múltiples formatos de timestamp para logs de texto plano
         const timestampRegexes = [
             /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, // ISO format
             /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, // Standard format
@@ -26,6 +36,51 @@ class LogParser {
         return new Date().toISOString();
     }
 
+    extractLogLevel(logLine) {
+        // Primero intentar parsear como JSON
+        try {
+            const logObj = JSON.parse(logLine);
+            if (logObj.level) {
+                return logObj.level.toLowerCase();
+            }
+        } catch (e) {
+            // Si no es JSON, usar detección de texto
+        }
+        
+        const lowerContent = logLine.toLowerCase();
+        if (lowerContent.includes('error') || lowerContent.includes('❌') || lowerContent.includes('failed') || lowerContent.includes('unauthorized')) {
+            return 'error';
+        } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️') || lowerContent.includes('warning')) {
+            return 'warn';
+        } else if (lowerContent.includes('info') || lowerContent.includes('✅') || lowerContent.includes('success') || lowerContent.includes('completed')) {
+            return 'info';
+        } else if (lowerContent.includes('debug') || lowerContent.includes('🔍')) {
+            return 'debug';
+        }
+        return 'default';
+    }
+
+    extractLogMessage(logLine) {
+        // Intentar parsear como JSON primero
+        try {
+            const logObj = JSON.parse(logLine);
+            let message = logObj.message || '';
+            
+            // Agregar información adicional si existe
+            if (logObj.endpoint) {
+                message += ` [${logObj.method?.toUpperCase() || 'GET'} ${logObj.endpoint}]`;
+            }
+            if (logObj.service) {
+                message += ` (${logObj.service})`;
+            }
+            
+            return message;
+        } catch (e) {
+            // Si no es JSON, devolver la línea completa
+            return logLine;
+        }
+    }
+
     async readLogs(type = 'all', lines = 100, fromDate = null, toDate = null) {
         const logFiles = this.getLogFiles(type);
         let logContent = [];
@@ -39,11 +94,15 @@ class LogParser {
                     const fileName = path.basename(logFile);
                     const parsedLines = fileLines.map(line => {
                         const timestamp = this.extractTimestamp(line);
+                        const level = this.extractLogLevel(line);
+                        const message = this.extractLogMessage(line);
+                        
                         return {
                             file: fileName,
-                            content: line,
+                            content: message,
+                            originalLine: line, // Mantener línea original para debugging
                             timestamp: timestamp,
-                            level: this.extractLogLevel(line),
+                            level: level,
                             date: new Date(timestamp)
                         };
                     });
@@ -62,7 +121,24 @@ class LogParser {
                     logContent.push(...filteredLines);
                 } catch (error) {
                     console.error(`Error leyendo archivo de log ${logFile}:`, error);
+                    // Agregar log de error para debugging
+                    logContent.push({
+                        file: path.basename(logFile),
+                        content: `Error leyendo archivo: ${error.message}`,
+                        timestamp: new Date().toISOString(),
+                        level: 'error',
+                        date: new Date()
+                    });
                 }
+            } else {
+                // Agregar mensaje si el archivo no existe
+                logContent.push({
+                    file: path.basename(logFile),
+                    content: `Archivo de log no encontrado: ${logFile}`,
+                    timestamp: new Date().toISOString(),
+                    level: 'warn',
+                    date: new Date()
+                });
             }
         }
 
@@ -85,6 +161,16 @@ class LogParser {
     }
 
     extractLogLevel(logLine) {
+        // Primero intentar parsear como JSON
+        try {
+            const logObj = JSON.parse(logLine);
+            if (logObj.level) {
+                return logObj.level.toLowerCase();
+            }
+        } catch (e) {
+            // Si no es JSON, usar detección de texto
+        }
+        
         const lowerContent = logLine.toLowerCase();
         if (lowerContent.includes('error') || lowerContent.includes('❌') || lowerContent.includes('failed') || lowerContent.includes('unauthorized')) {
             return 'error';

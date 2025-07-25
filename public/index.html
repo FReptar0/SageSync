@@ -865,13 +865,22 @@
                 const logType = document.getElementById('log-type-recent').value;
                 const logLines = document.getElementById('log-lines-recent').value;
                 
+                console.log(`Fetching logs: type=${logType}, lines=${logLines}`); // Debug
+                
                 const response = await fetch(`/api/logs?type=${logType}&lines=${logLines}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Logs data received:', data); // Debug
+                
                 updateLogs(data, 'recent-logs');
             } catch (error) {
                 console.error('Error fetching logs:', error);
                 document.getElementById('recent-logs').innerHTML = 
-                    '<div class="error">Error cargando logs del sistema</div>';
+                    `<div class="error">Error cargando logs del sistema: ${error.message}</div>`;
             }
         }
         
@@ -954,16 +963,20 @@
         function updateLogs(data, containerId) {
             const logsContainer = document.getElementById(containerId);
             
+            console.log(`Updating logs in ${containerId}:`, data); // Debug
+            
             if (!data.logs || data.logs.length === 0) {
                 logsContainer.innerHTML = '<div class="info">No hay logs disponibles para los criterios seleccionados</div>';
                 return;
             }
             
             let logsHtml = '';
-            data.logs.forEach(log => {
+            data.logs.forEach((log, index) => {
                 const logClass = `log-${log.level}`;
                 const timeFormatted = formatLogTime(log.timestamp);
                 const fileName = log.file.replace('.log', '');
+                
+                console.log(`Processing log ${index}:`, log); // Debug
                 
                 logsHtml += `<div class="log-entry ${logClass}">
                     <span class="log-time">${timeFormatted}</span>

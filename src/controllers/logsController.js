@@ -19,8 +19,10 @@ const getLogs = asyncHandler(async (req, res) => {
         });
     }
     
-    const logsDir = path.join(__dirname, config.logs.directory);
+    const logsDir = path.join(__dirname, '../../logs'); // Corregir la ruta
     const logParser = new LogParser(logsDir);
+    
+    console.log(`DEBUG: Buscando logs en: ${logsDir}`); // Debug log
     
     let logs;
     if (date) {
@@ -30,6 +32,8 @@ const getLogs = asyncHandler(async (req, res) => {
         // Obtener logs con rango de fechas opcional
         logs = await logParser.readLogs(type, parseInt(lines), fromDate, toDate);
     }
+    
+    console.log(`DEBUG: Encontrados ${logs.length} logs`); // Debug log
     
     res.json({
         logs,
@@ -44,7 +48,7 @@ const getLogs = asyncHandler(async (req, res) => {
 const getAvailableDates = asyncHandler(async (req, res) => {
     const { type = 'all' } = req.query;
     
-    const logsDir = path.join(__dirname, config.logs.directory);
+    const logsDir = path.join(__dirname, '../../logs'); // Corregir la ruta
     const logParser = new LogParser(logsDir);
     
     const dates = await logParser.getAvailableDates(type);
@@ -57,7 +61,7 @@ const getAvailableDates = asyncHandler(async (req, res) => {
 });
 
 const getLogStats = asyncHandler(async (req, res) => {
-    const logsDir = path.join(__dirname, config.logs.directory);
+    const logsDir = path.join(__dirname, '../../logs'); // Corregir la ruta
     const logParser = new LogParser(logsDir);
     
     const stats = await logParser.getLogStats();
@@ -68,8 +72,49 @@ const getLogStats = asyncHandler(async (req, res) => {
     });
 });
 
+const testLogs = asyncHandler(async (req, res) => {
+    const fs = require('fs');
+    const logsDir = path.join(__dirname, '../../logs');
+    
+    const testInfo = {
+        logsDirectory: logsDir,
+        directoryExists: fs.existsSync(logsDir),
+        files: []
+    };
+    
+    if (testInfo.directoryExists) {
+        const files = fs.readdirSync(logsDir);
+        testInfo.files = files.map(file => {
+            const filePath = path.join(logsDir, file);
+            const stats = fs.statSync(filePath);
+            return {
+                name: file,
+                size: stats.size,
+                modified: stats.mtime.toISOString(),
+                exists: fs.existsSync(filePath)
+            };
+        });
+    }
+    
+    // Test reading a few lines
+    const logParser = new LogParser(logsDir);
+    let testLogs = [];
+    try {
+        testLogs = await logParser.readLogs('all', 5);
+    } catch (error) {
+        testInfo.readError = error.message;
+    }
+    
+    res.json({
+        testInfo,
+        sampleLogs: testLogs,
+        timestamp: new Date().toISOString()
+    });
+});
+
 module.exports = {
     getLogs,
     getLogStats,
-    getAvailableDates
+    getAvailableDates,
+    testLogs
 };

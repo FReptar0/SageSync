@@ -12,5 +12,6 @@ router.get('/test/connections', systemController.testConnections);
 router.get('/logs', logsController.getLogs);
 router.get('/logs/stats', logsController.getLogStats);
 router.get('/logs/dates', logsController.getAvailableDates);
+router.get('/logs/test', logsController.testLogs);
 
 module.exports = router;
