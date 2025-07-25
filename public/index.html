@@ -544,7 +544,7 @@
                 <button class="tab-btn active" onclick="switchTab('recent')">📝 Logs Recientes</button>
                 <button class="tab-btn" onclick="switchTab('history')">📅 Historial por Fecha</button>
                 <button class="tab-btn" onclick="switchTab('search')">🔍 Búsqueda Avanzada</button>
-                <button class="tab-btn" onclick="switchTab('stats')">� Estadísticas</button>
+                <button class="tab-btn" onclick="switchTab('stats')">📊 Estadísticas</button>
             </div>
 
             <!-- Tab: Recent Logs -->
@@ -886,20 +886,37 @@
         
         async function loadAvailableDates() {
             try {
+                console.log('Loading available dates...'); // Debug
                 const response = await fetch('/api/logs/dates');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Available dates received:', data); // Debug
                 
                 const selector = document.getElementById('date-selector');
                 selector.innerHTML = '<option value="">Seleccionar fecha...</option>';
                 
-                data.dates.forEach(date => {
+                if (data.dates && data.dates.length > 0) {
+                    data.dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = formatDateForDisplay(date);
+                        selector.appendChild(option);
+                    });
+                } else {
                     const option = document.createElement('option');
-                    option.value = date;
-                    option.textContent = formatDateForDisplay(date);
+                    option.value = '';
+                    option.textContent = 'No hay fechas disponibles';
+                    option.disabled = true;
                     selector.appendChild(option);
-                });
+                }
             } catch (error) {
                 console.error('Error loading dates:', error);
+                document.getElementById('date-selector').innerHTML = 
+                    '<option value="">Error cargando fechas</option>';
             }
         }
         
@@ -907,56 +924,110 @@
             const date = document.getElementById('date-selector').value;
             const type = document.getElementById('log-type-history').value;
             
-            if (!date) return;
+            if (!date) {
+                document.getElementById('history-logs').innerHTML = 
+                    '<div class="info">Selecciona una fecha para ver los logs</div>';
+                return;
+            }
+            
+            document.getElementById('history-logs').innerHTML = 
+                '<div class="loading">Cargando logs de la fecha seleccionada...</div>';
             
             try {
+                console.log(`Loading logs by date: ${date}, type: ${type}`); // Debug
                 const response = await fetch(`/api/logs?date=${date}&type=${type}&lines=1000`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Logs by date received:', data); // Debug
                 updateLogs(data, 'history-logs');
             } catch (error) {
                 console.error('Error loading logs by date:', error);
                 document.getElementById('history-logs').innerHTML = 
-                    '<div class="error">Error cargando logs de la fecha seleccionada</div>';
+                    `<div class="error">Error cargando logs de la fecha seleccionada: ${error.message}</div>`;
             }
         }
         
         async function searchLogs() {
-            const searchText = document.getElementById('search-text').value;
+            const searchText = document.getElementById('search-text').value.trim();
             const fromDate = document.getElementById('date-from').value;
             const toDate = document.getElementById('date-to').value;
             
+            // Validar que al menos haya un criterio de búsqueda
+            if (!searchText && !fromDate && !toDate) {
+                document.getElementById('search-results').innerHTML = 
+                    '<div class="info">Ingresa al menos un término de búsqueda o rango de fechas</div>';
+                return;
+            }
+            
+            document.getElementById('search-results').innerHTML = 
+                '<div class="loading">Buscando en logs...</div>';
+            
             try {
-                let url = '/api/logs?lines=1000';
+                console.log(`Searching logs: text="${searchText}", from="${fromDate}", to="${toDate}"`); // Debug
+                
+                let url = '/api/logs?lines=5000'; // Más logs para búsqueda
                 if (fromDate) url += `&fromDate=${fromDate}`;
                 if (toDate) url += `&toDate=${toDate}`;
                 
                 const response = await fetch(url);
-                const data = await response.json();
                 
-                let filteredLogs = data.logs;
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Search data received:', data); // Debug
+                
+                let filteredLogs = data.logs || [];
+                
+                // Filtrar por texto si se especifica
                 if (searchText) {
-                    filteredLogs = data.logs.filter(log => 
-                        log.content.toLowerCase().includes(searchText.toLowerCase())
+                    filteredLogs = filteredLogs.filter(log => 
+                        log.content.toLowerCase().includes(searchText.toLowerCase()) ||
+                        log.file.toLowerCase().includes(searchText.toLowerCase())
                     );
                 }
                 
+                console.log(`Filtered ${filteredLogs.length} logs from ${data.logs?.length || 0} total`); // Debug
+                
                 updateLogs({ ...data, logs: filteredLogs }, 'search-results');
+                
+                // Mostrar contador de resultados
+                const resultsInfo = document.createElement('div');
+                resultsInfo.className = 'info';
+                resultsInfo.style.marginBottom = '10px';
+                resultsInfo.innerHTML = `Se encontraron ${filteredLogs.length} resultados`;
+                
+                const container = document.getElementById('search-results');
+                container.insertBefore(resultsInfo, container.firstChild);
+                
             } catch (error) {
                 console.error('Error searching logs:', error);
                 document.getElementById('search-results').innerHTML = 
-                    '<div class="error">Error buscando en logs</div>';
+                    `<div class="error">Error buscando en logs: ${error.message}</div>`;
             }
         }
         
         async function loadLogStats() {
             try {
+                console.log('Loading log stats...'); // Debug
                 const response = await fetch('/api/logs/stats');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Log stats received:', data); // Debug
                 updateLogStats(data.stats);
             } catch (error) {
                 console.error('Error loading log stats:', error);
                 document.getElementById('logs-stats').innerHTML = 
-                    '<div class="error">Error cargando estadísticas de logs</div>';
+                    `<div class="error">Error cargando estadísticas de logs: ${error.message}</div>`;
             }
         }
         
@@ -1068,8 +1139,37 @@
         }
         
         function exportLogs(type) {
-            // Esta función puede implementarse para exportar logs a CSV/JSON
-            alert('Función de exportación - Por implementar');
+            // Función básica de exportación
+            const activeTab = document.querySelector('.tab-content.active').id;
+            const containerId = activeTab.replace('tab-', '') + '-logs';
+            const container = document.getElementById(containerId);
+            
+            if (!container) {
+                alert('No hay logs para exportar');
+                return;
+            }
+            
+            // Crear contenido para exportar (implementación básica)
+            const logEntries = container.querySelectorAll('.log-entry');
+            let exportContent = `SageSync - Exportación de Logs\nFecha: ${new Date().toLocaleString()}\n\n`;
+            
+            logEntries.forEach((entry, index) => {
+                const time = entry.querySelector('.log-time')?.textContent || '';
+                const file = entry.querySelector('.log-file')?.textContent || '';
+                const content = entry.querySelector('.log-content')?.textContent || '';
+                exportContent += `${index + 1}. [${time}] ${file}: ${content}\n`;
+            });
+            
+            // Crear y descargar archivo
+            const blob = new Blob([exportContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sagesync-logs-${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
         }
         
         function formatDateForDisplay(dateString) {

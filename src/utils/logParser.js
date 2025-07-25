@@ -160,30 +160,6 @@ class LogParser {
         return logFiles;
     }
 
-    extractLogLevel(logLine) {
-        // Primero intentar parsear como JSON
-        try {
-            const logObj = JSON.parse(logLine);
-            if (logObj.level) {
-                return logObj.level.toLowerCase();
-            }
-        } catch (e) {
-            // Si no es JSON, usar detección de texto
-        }
-        
-        const lowerContent = logLine.toLowerCase();
-        if (lowerContent.includes('error') || lowerContent.includes('❌') || lowerContent.includes('failed') || lowerContent.includes('unauthorized')) {
-            return 'error';
-        } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️') || lowerContent.includes('warning')) {
-            return 'warn';
-        } else if (lowerContent.includes('info') || lowerContent.includes('✅') || lowerContent.includes('success') || lowerContent.includes('completed')) {
-            return 'info';
-        } else if (lowerContent.includes('debug') || lowerContent.includes('🔍')) {
-            return 'debug';
-        }
-        return 'default';
-    }
-
     async getLogsByDate(date, type = 'all') {
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
@@ -191,20 +167,32 @@ class LogParser {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
         
-        return await this.readLogs(type, 1000, startOfDay, endOfDay);
+        const fromDate = startOfDay.toISOString();
+        const toDate = endOfDay.toISOString();
+        
+        return await this.readLogs(type, 1000, fromDate, toDate);
     }
 
     async getAvailableDates(type = 'all') {
-        const logs = await this.readLogs(type, 10000); // Obtener muchos logs para análisis
-        const dates = new Set();
-        
-        logs.forEach(log => {
-            const date = new Date(log.timestamp);
-            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
-            dates.add(dateString);
-        });
-        
-        return Array.from(dates).sort().reverse(); // Más recientes primero
+        try {
+            const logs = await this.readLogs(type, 10000); // Obtener muchos logs para análisis
+            const dates = new Set();
+            
+            logs.forEach(log => {
+                if (log.timestamp) {
+                    const date = new Date(log.timestamp);
+                    if (!isNaN(date.getTime())) {
+                        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                        dates.add(dateString);
+                    }
+                }
+            });
+            
+            return Array.from(dates).sort().reverse(); // Más recientes primero
+        } catch (error) {
+            console.error('Error obteniendo fechas disponibles:', error);
+            return [];
+        }
     }
 
     async getLogStats() {

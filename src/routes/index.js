@@ -3,6 +3,7 @@ const systemRoutes = require('./systemRoutes');
 const syncRoutes = require('./syncRoutes');
 const sageRoutes = require('./sageRoutes');
 const fracttalRoutes = require('./fracttalRoutes');
+const logsRoutes = require('./logsRoutes');
 
 const router = express.Router();
 
@@ -11,5 +12,6 @@ router.use('/', systemRoutes);
 router.use('/', syncRoutes);
 router.use('/', sageRoutes);
 router.use('/', fracttalRoutes);
+router.use('/', logsRoutes);
 
 module.exports = router;
