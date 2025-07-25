@@ -36,30 +36,41 @@ class FracttalClient {
         this.client.interceptors.response.use(
             (response) => response,
             async (error) => {
-                if (error.response && error.response.status === 401) {
+                const originalRequest = error.config;
+                
+                if (error.response && error.response.status === 401 && !originalRequest._retry) {
+                    originalRequest._retry = true;
+                    
+                    console.log(`🔄 Token inválido (401), intentando renovar...`);
                     logger.warn('Token expirado, renovando...');
 
-                    let newToken = null;
-                    if (this.refreshToken) {
-                        try {
-                            newToken = await this.refreshAccessToken();
-                        } catch (refreshError) {
-                            logger.warn('Error renovando token, obteniendo nuevo token...');
-                            this.refreshToken = null;
-                        }
-                    }
-
-                    if (!newToken) {
+                    try {
+                        // Limpiar token actual
                         this.accessToken = null;
                         this.tokenExpiry = null;
-                        newToken = await this.getAccessToken();
-                    }
-
-                    if (newToken) {
-                        error.config.headers.Authorization = `Bearer ${newToken}`;
-                        return this.client.request(error.config);
+                        
+                        // Obtener nuevo token
+                        const newToken = await this.getAccessToken();
+                        
+                        if (newToken) {
+                            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                            console.log(`🔄 Reintentando petición con nuevo token...`);
+                            return this.client.request(originalRequest);
+                        }
+                    } catch (retryError) {
+                        console.error(`❌ Error obteniendo nuevo token:`, retryError.message);
+                        logger.error('Error obteniendo nuevo token:', retryError.message);
+                        return Promise.reject(retryError);
                     }
                 }
+                
+                // Log del error para debug
+                if (error.response) {
+                    console.error(`❌ Error HTTP ${error.response.status}:`, error.response.data);
+                } else {
+                    console.error(`❌ Error de red:`, error.message);
+                }
+                
                 return Promise.reject(error);
             }
         );
@@ -73,10 +84,28 @@ class FracttalClient {
                 this.accessToken = existingToken.access_token;
                 this.refreshToken = existingToken.refresh_token;
                 this.tokenExpiry = new Date(existingToken.expires_at);
-                logger.info('Token cargado desde archivo, válido hasta:', this.tokenExpiry.toISOString());
-                return this.accessToken;
+                
+                const now = new Date();
+                const timeUntilExpiry = this.tokenExpiry.getTime() - now.getTime();
+                const minutesUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60));
+                
+                console.log(`🔑 Token cargado desde archivo`);
+                console.log(`📅 Expira: ${this.tokenExpiry.toISOString()}`);
+                console.log(`⏰ Tiempo restante: ${minutesUntilExpiry} minutos`);
+                
+                if (timeUntilExpiry > 0) {
+                    logger.info('Token cargado desde archivo, válido hasta:', this.tokenExpiry.toISOString());
+                    return this.accessToken;
+                } else {
+                    console.log(`⚠️  Token expirado hace ${Math.abs(minutesUntilExpiry)} minutos, necesita renovación`);
+                    // Token expirado, limpiar y continuar con nueva autenticación
+                    this.accessToken = null;
+                    this.refreshToken = null;
+                    this.tokenExpiry = null;
+                }
             }
 
+            console.log(`🔐 Obteniendo nuevo token de acceso...`);
             logger.info('Autenticando con Fracttal API usando Client Credentials...');
 
             const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
@@ -95,17 +124,21 @@ class FracttalClient {
             // Guardar token en archivo
             this.configManager.saveToken(response.data);
 
+            console.log(`✅ Nueva autenticación exitosa`);
+            console.log(`📅 Token expira: ${this.tokenExpiry.toISOString()}`);
             logger.info('Autenticación exitosa con Fracttal');
             logger.info(`Token expira en: ${this.tokenExpiry.toISOString()}`);
 
             return this.accessToken;
         } catch (error) {
-            logger.error('Error en autenticación con Fracttal:', {
+            const errorDetails = {
                 status: error.response?.status,
                 statusText: error.response?.statusText,
                 data: error.response?.data,
                 message: error.message
-            });
+            };
+            console.error(`❌ Error en autenticación:`, errorDetails);
+            logger.error('Error en autenticación con Fracttal:', errorDetails);
             throw error;
         }
     }
@@ -117,6 +150,7 @@ class FracttalClient {
 
         try {
             logger.info('Renovando token de acceso...');
+            console.log(`🔄 Intentando renovar token...`);
 
             const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
 
@@ -135,18 +169,42 @@ class FracttalClient {
             this.refreshToken = response.data.refresh_token || this.refreshToken;
             this.tokenExpiry = new Date(Date.now() + ((response.data.expires_in || 7200) * 1000));
 
+            // Guardar el nuevo token
+            this.configManager.saveToken(response.data);
+
             logger.info('Token renovado exitosamente');
+            console.log(`✅ Token renovado exitosamente. Expira: ${this.tokenExpiry.toISOString()}`);
             return this.accessToken;
         } catch (error) {
-            logger.error('Error renovando token:', error.response?.data || error.message);
+            const errorDetails = {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            };
+            logger.error('Error renovando token:', errorDetails);
+            console.error(`❌ Error renovando token:`, errorDetails);
             throw error;
         }
     }
 
     async getAccessToken() {
-        if (!this.accessToken || (this.tokenExpiry && new Date() >= this.tokenExpiry)) {
-            await this.authenticate();
+        // Verificar si ya tenemos un token válido
+        if (this.accessToken && this.tokenExpiry) {
+            const now = new Date();
+            const timeUntilExpiry = this.tokenExpiry.getTime() - now.getTime();
+            const minutesUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60));
+            
+            // Si el token expira en más de 5 minutos, está bien usarlo
+            if (timeUntilExpiry > (5 * 60 * 1000)) {
+                return this.accessToken;
+            }
+            
+            console.log(`⚠️  Token expira en ${minutesUntilExpiry} minutos, necesita renovación`);
         }
+        
+        // Token no existe o está próximo a expirar, autenticar
+        await this.authenticate();
         return this.accessToken;
     }
 
@@ -231,11 +289,19 @@ class FracttalClient {
     // Nuevos métodos para consultar almacenes e inventarios
     async getWarehouseByCode(code, params = {}) {
         try {
+            console.log(`🔍 Consultando almacén con código: ${code}`);
             logger.info(`Consultando almacén con código: ${code}`);
             const response = await this.client.get(`/warehouses/${code}`, { params });
+            console.log(`✅ Almacén ${code} encontrado`);
             return response.data;
         } catch (error) {
-            logger.error('Error consultando almacén:', error.response?.data || error.message);
+            if (error.response && error.response.status === 404) {
+                console.log(`📭 Almacén ${code} no encontrado (404)`);
+                logger.info(`Almacén ${code} no encontrado`);
+            } else {
+                console.error(`❌ Error consultando almacén ${code}:`, error.response?.data || error.message);
+                logger.error('Error consultando almacén:', error.response?.data || error.message);
+            }
             throw error;
         }
     }
@@ -336,40 +402,82 @@ class FracttalClient {
 
     async createWarehouse(warehouseData) {
         try {
-            logger.info(`Creando almacén: ${warehouseData.code} - ${warehouseData.name}`);
-            const response = await this.client.post('/warehouses', warehouseData);
+            // Validar datos requeridos
+            if (!warehouseData.code || !warehouseData.description) {
+                throw new Error('Code y description son requeridos para crear un almacén');
+            }
+            
+            console.log(`🏗️  Creando almacén: ${warehouseData.code} - ${warehouseData.description}`);
+            logger.info(`Creando almacén: ${warehouseData.code} - ${warehouseData.description}`);
+            
+            // Estructura según la documentación de Fracttal
+            const warehousePayload = {
+                code: warehouseData.code,
+                description: warehouseData.description,
+                address: warehouseData.address || '',
+                state: warehouseData.state || '',
+                city: warehouseData.city || '',
+                country: warehouseData.country || '',
+                zip_code: warehouseData.zip_code || '',
+                external_integration: warehouseData.external_integration || false,
+                transfer_approval: warehouseData.transfer_approval || false,
+                active: warehouseData.active !== undefined ? warehouseData.active : true,
+                visible_to_all: warehouseData.visible_to_all || false
+            };
+            
+            console.log(`📋 Datos del almacén:`, warehousePayload);
+            
+            const response = await this.client.post('/warehouses/', warehousePayload);
+            
+            console.log(`✅ Almacén creado exitosamente: ${warehouseData.code}`);
             logger.info(`Almacén creado exitosamente: ${warehouseData.code}`);
+            
             return response.data;
         } catch (error) {
-            logger.error('Error creando almacén:', error.response?.data || error.message);
+            const errorDetails = {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            };
+            console.error(`❌ Error creando almacén:`, errorDetails);
+            logger.error('Error creando almacén:', errorDetails);
             throw error;
         }
     }
 
     async ensureWarehouseExists(warehouseCode) {
         try {
+            console.log(`🔍 Verificando si almacén ${warehouseCode} existe...`);
+            
             // Primero verificar si el almacén existe
             const warehouse = await this.getWarehouseByCode(warehouseCode);
             if (warehouse && warehouse.success && warehouse.data) {
+                console.log(`✅ Almacén ${warehouseCode} ya existe`);
                 logger.info(`Almacén ${warehouseCode} ya existe`);
                 return warehouse.data;
             }
         } catch (error) {
             // Si es 404, el almacén no existe, continuar con la creación
             if (error.response && error.response.status !== 404) {
+                console.error(`❌ Error verificando almacén ${warehouseCode}:`, error.message);
                 throw error;
             }
+            console.log(`📭 Almacén ${warehouseCode} no encontrado (404), procediendo a crear...`);
         }
 
         // Si llegamos aquí, el almacén no existe, crearlo
         const creationSettings = this.configManager.getWarehouseCreationSettings();
         if (!creationSettings.enabled) {
-            throw new Error(`Almacén ${warehouseCode} no encontrado y la creación automática está deshabilitada`);
+            const errorMsg = `Almacén ${warehouseCode} no encontrado y la creación automática está deshabilitada`;
+            console.error(`❌ ${errorMsg}`);
+            throw new Error(errorMsg);
         }
+
+        console.log(`🏗️  Creando almacén ${warehouseCode} automáticamente...`);
 
         const warehouseData = {
             code: warehouseCode,
-            name: creationSettings.nameTemplate.replace('{code}', warehouseCode),
             description: creationSettings.descriptionTemplate.replace('{code}', warehouseCode),
             active: true,
             ...creationSettings.defaultValues
@@ -380,6 +488,7 @@ class FracttalClient {
         // Actualizar configuración con el nuevo almacén si es necesario
         const defaultWarehouse = this.configManager.getDefaultWarehouse();
         if (defaultWarehouse.code === warehouseCode) {
+            console.log(`✅ Almacén por defecto ${warehouseCode} creado exitosamente`);
             logger.info(`Almacén por defecto ${warehouseCode} creado exitosamente`);
         }
 
