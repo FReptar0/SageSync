@@ -5,7 +5,9 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
+    "server": "node src/server.js",
     "dev": "nodemon src/app.js",
+    "dev-server": "nodemon src/server.js",
     "sync": "node src/sync.js",
     "test": "jest",
     "test:watch": "jest --watch",
