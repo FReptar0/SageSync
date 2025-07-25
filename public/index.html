@@ -190,59 +190,312 @@
             font-size: 12px;
         }
         
+        /* Tabs Styling */
+        .tabs-nav {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+            gap: 5px;
+        }
+        
+        .tab-btn {
+            background: #f8f9fa;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .tab-btn:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+        
+        .tab-btn.active {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Logs Controls */
+        .logs-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group.full-width {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn-refresh, .btn-export, .btn-search, .btn-clear {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .btn-refresh {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-refresh:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .btn-export {
+            background: #6f42c1;
+            color: white;
+        }
+        
+        .btn-export:hover {
+            background: #5a32a3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-search {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-search:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+        
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+        }
+        
+        /* Logs Container */
+        .logs-container {
+            max-height: 500px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #1e2a3a 0%, #2c3e50 100%);
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .logs-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .logs-container::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        
         .log-entry {
-            margin-bottom: 2px;
-            padding: 2px 0;
-            line-height: 1.4;
+            margin-bottom: 4px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .log-entry:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateX(2px);
         }
         
         .log-time {
             color: #95a5a6;
             font-weight: bold;
+            margin-right: 8px;
         }
         
         .log-file {
-            color: #3498db;
+            background: #3498db;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 0 8px;
             font-weight: bold;
-            margin: 0 5px;
         }
         
         .log-content {
             color: #ecf0f1;
+            margin-left: 8px;
         }
         
         .log-error {
-            border-left: 3px solid #e74c3c;
-            padding-left: 8px;
-            background-color: rgba(231, 76, 60, 0.1);
+            border-left-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
         }
         
         .log-error .log-content {
-            color: #e74c3c;
+            color: #ff6b6b;
+        }
+        
+        .log-error .log-file {
+            background: #e74c3c;
         }
         
         .log-warn {
-            border-left: 3px solid #f39c12;
-            padding-left: 8px;
-            background-color: rgba(243, 156, 18, 0.1);
+            border-left-color: #f39c12;
+            background: rgba(243, 156, 18, 0.1);
         }
         
         .log-warn .log-content {
-            color: #f39c12;
+            color: #ffd93d;
+        }
+        
+        .log-warn .log-file {
+            background: #f39c12;
         }
         
         .log-info {
-            border-left: 3px solid #27ae60;
-            padding-left: 8px;
-            background-color: rgba(39, 174, 96, 0.1);
+            border-left-color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
         }
         
         .log-info .log-content {
-            color: #27ae60;
+            color: #6bcf7f;
+        }
+        
+        .log-info .log-file {
+            background: #27ae60;
+        }
+        
+        .log-debug {
+            border-left-color: #9b59b6;
+            background: rgba(155, 89, 182, 0.1);
+        }
+        
+        .log-debug .log-content {
+            color: #be90d4;
+        }
+        
+        .log-debug .log-file {
+            background: #9b59b6;
         }
         
         .log-default {
             color: #bdc3c7;
+            border-left-color: #7f8c8d;
+        }
+        
+        /* Stats Dashboard */
+        .stats-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .info {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
         }
     </style>
 </head>
@@ -284,23 +537,102 @@
         </div>
         
         <div class="card">
-            <h2>Actividad Reciente</h2>
-            <div style="margin-bottom: 15px;">
-                <button class="button" onclick="refreshLogs()">🔄 Actualizar</button>
-                <select id="log-type" onchange="refreshLogs()" style="margin-left: 10px; padding: 5px;">
-                    <option value="all">Todos los Logs</option>
-                    <option value="app">Solo Aplicación</option>
-                    <option value="error">Solo Errores</option>
-                </select>
-                <select id="log-lines" onchange="refreshLogs()" style="margin-left: 10px; padding: 5px;">
-                    <option value="50">50 líneas</option>
-                    <option value="100" selected>100 líneas</option>
-                    <option value="200">200 líneas</option>
-                    <option value="500">500 líneas</option>
-                </select>
+            <h2>📋 Sistema de Logs</h2>
+            
+            <!-- Tabs Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('recent')">📝 Logs Recientes</button>
+                <button class="tab-btn" onclick="switchTab('history')">📅 Historial por Fecha</button>
+                <button class="tab-btn" onclick="switchTab('search')">🔍 Búsqueda Avanzada</button>
+                <button class="tab-btn" onclick="switchTab('stats')">� Estadísticas</button>
             </div>
-            <div id="recent-activity" class="log-container">
-                <div class="loading">Cargando logs...</div>
+
+            <!-- Tab: Recent Logs -->
+            <div id="tab-recent" class="tab-content active">
+                <div class="logs-controls">
+                    <div class="control-group">
+                        <label>Tipo:</label>
+                        <select id="log-type-recent" onchange="refreshLogs('recent')">
+                            <option value="all">Todos los Logs</option>
+                            <option value="app">Solo Aplicación</option>
+                            <option value="error">Solo Errores</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Líneas:</label>
+                        <select id="log-lines-recent" onchange="refreshLogs('recent')">
+                            <option value="50">50 líneas</option>
+                            <option value="100" selected>100 líneas</option>
+                            <option value="200">200 líneas</option>
+                            <option value="500">500 líneas</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <button class="btn-refresh" onclick="refreshLogs('recent')">🔄 Actualizar</button>
+                        <button class="btn-export" onclick="exportLogs('recent')">💾 Exportar</button>
+                    </div>
+                </div>
+                <div id="recent-logs" class="logs-container">
+                    <div class="loading">Cargando logs recientes...</div>
+                </div>
+            </div>
+
+            <!-- Tab: History -->
+            <div id="tab-history" class="tab-content">
+                <div class="logs-controls">
+                    <div class="control-group">
+                        <label>Fecha:</label>
+                        <select id="date-selector" onchange="loadLogsByDate()">
+                            <option value="">Seleccionar fecha...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Tipo:</label>
+                        <select id="log-type-history">
+                            <option value="all">Todos</option>
+                            <option value="app">Aplicación</option>
+                            <option value="error">Errores</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <button class="btn-refresh" onclick="loadLogsByDate()">📅 Cargar</button>
+                    </div>
+                </div>
+                <div id="history-logs" class="logs-container">
+                    <div class="info">Selecciona una fecha para ver los logs</div>
+                </div>
+            </div>
+
+            <!-- Tab: Search -->
+            <div id="tab-search" class="tab-content">
+                <div class="logs-controls">
+                    <div class="control-group full-width">
+                        <label>Buscar texto:</label>
+                        <input type="text" id="search-text" placeholder="Buscar en logs..." onkeyup="handleSearchKeyup(event)">
+                    </div>
+                    <div class="control-group">
+                        <label>Desde:</label>
+                        <input type="date" id="date-from">
+                    </div>
+                    <div class="control-group">
+                        <label>Hasta:</label>
+                        <input type="date" id="date-to">
+                    </div>
+                    <div class="control-group">
+                        <button class="btn-search" onclick="searchLogs()">🔍 Buscar</button>
+                        <button class="btn-clear" onclick="clearSearch()">🧹 Limpiar</button>
+                    </div>
+                </div>
+                <div id="search-results" class="logs-container">
+                    <div class="info">Ingresa términos de búsqueda para filtrar logs</div>
+                </div>
+            </div>
+
+            <!-- Tab: Stats -->
+            <div id="tab-stats" class="tab-content">
+                <div id="logs-stats" class="stats-dashboard">
+                    <div class="loading">Cargando estadísticas...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -530,55 +862,211 @@
         
         async function fetchLogs() {
             try {
-                const logType = document.getElementById('log-type').value;
-                const logLines = document.getElementById('log-lines').value;
+                const logType = document.getElementById('log-type-recent').value;
+                const logLines = document.getElementById('log-lines-recent').value;
                 
                 const response = await fetch(`/api/logs?type=${logType}&lines=${logLines}`);
                 const data = await response.json();
-                updateLogs(data);
+                updateLogs(data, 'recent-logs');
             } catch (error) {
                 console.error('Error fetching logs:', error);
-                document.getElementById('recent-activity').innerHTML = 
+                document.getElementById('recent-logs').innerHTML = 
                     '<div class="error">Error cargando logs del sistema</div>';
             }
         }
         
-        function updateLogs(data) {
-            const logsContainer = document.getElementById('recent-activity');
+        async function loadAvailableDates() {
+            try {
+                const response = await fetch('/api/logs/dates');
+                const data = await response.json();
+                
+                const selector = document.getElementById('date-selector');
+                selector.innerHTML = '<option value="">Seleccionar fecha...</option>';
+                
+                data.dates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = formatDateForDisplay(date);
+                    selector.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading dates:', error);
+            }
+        }
+        
+        async function loadLogsByDate() {
+            const date = document.getElementById('date-selector').value;
+            const type = document.getElementById('log-type-history').value;
+            
+            if (!date) return;
+            
+            try {
+                const response = await fetch(`/api/logs?date=${date}&type=${type}&lines=1000`);
+                const data = await response.json();
+                updateLogs(data, 'history-logs');
+            } catch (error) {
+                console.error('Error loading logs by date:', error);
+                document.getElementById('history-logs').innerHTML = 
+                    '<div class="error">Error cargando logs de la fecha seleccionada</div>';
+            }
+        }
+        
+        async function searchLogs() {
+            const searchText = document.getElementById('search-text').value;
+            const fromDate = document.getElementById('date-from').value;
+            const toDate = document.getElementById('date-to').value;
+            
+            try {
+                let url = '/api/logs?lines=1000';
+                if (fromDate) url += `&fromDate=${fromDate}`;
+                if (toDate) url += `&toDate=${toDate}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                let filteredLogs = data.logs;
+                if (searchText) {
+                    filteredLogs = data.logs.filter(log => 
+                        log.content.toLowerCase().includes(searchText.toLowerCase())
+                    );
+                }
+                
+                updateLogs({ ...data, logs: filteredLogs }, 'search-results');
+            } catch (error) {
+                console.error('Error searching logs:', error);
+                document.getElementById('search-results').innerHTML = 
+                    '<div class="error">Error buscando en logs</div>';
+            }
+        }
+        
+        async function loadLogStats() {
+            try {
+                const response = await fetch('/api/logs/stats');
+                const data = await response.json();
+                updateLogStats(data.stats);
+            } catch (error) {
+                console.error('Error loading log stats:', error);
+                document.getElementById('logs-stats').innerHTML = 
+                    '<div class="error">Error cargando estadísticas de logs</div>';
+            }
+        }
+        
+        function updateLogs(data, containerId) {
+            const logsContainer = document.getElementById(containerId);
             
             if (!data.logs || data.logs.length === 0) {
-                logsContainer.innerHTML = '<div class="loading">No hay logs disponibles...</div>';
+                logsContainer.innerHTML = '<div class="info">No hay logs disponibles para los criterios seleccionados</div>';
                 return;
             }
             
             let logsHtml = '';
             data.logs.forEach(log => {
-                const logClass = getLogClass(log.content);
+                const logClass = `log-${log.level}`;
                 const timeFormatted = formatLogTime(log.timestamp);
                 const fileName = log.file.replace('.log', '');
                 
                 logsHtml += `<div class="log-entry ${logClass}">
-                    <span class="log-time">[${timeFormatted}]</span>
-                    <span class="log-file">[${fileName}]</span>
+                    <span class="log-time">${timeFormatted}</span>
+                    <span class="log-file">${fileName}</span>
                     <span class="log-content">${escapeHtml(log.content)}</span>
                 </div>`;
             });
             
             logsContainer.innerHTML = logsHtml;
-            // Auto-scroll al final
-            logsContainer.scrollTop = logsContainer.scrollHeight;
+            logsContainer.scrollTop = 0; // Scroll to top for new content
         }
         
-        function getLogClass(content) {
-            const lowerContent = content.toLowerCase();
-            if (lowerContent.includes('error') || lowerContent.includes('❌')) {
-                return 'log-error';
-            } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️')) {
-                return 'log-warn';
-            } else if (lowerContent.includes('info') || lowerContent.includes('✅')) {
-                return 'log-info';
+        function updateLogStats(stats) {
+            const statsContainer = document.getElementById('logs-stats');
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>📊 Total de Logs</h3>
+                    <div class="stat-number">${stats.total || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>❌ Errores</h3>
+                    <div class="stat-number">${stats.errors || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>⚠️ Advertencias</h3>
+                    <div class="stat-number">${stats.warnings || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>ℹ️ Información</h3>
+                    <div class="stat-number">${stats.info || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🕐 Última Actualización</h3>
+                    <div class="stat-number" style="font-size: 16px;">
+                        ${stats.lastUpdate ? formatLogTime(stats.lastUpdate) : 'N/A'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data for the selected tab
+            switch(tabName) {
+                case 'recent':
+                    fetchLogs();
+                    break;
+                case 'history':
+                    loadAvailableDates();
+                    break;
+                case 'stats':
+                    loadLogStats();
+                    break;
             }
-            return 'log-default';
+        }
+        
+        function refreshLogs(type) {
+            if (type === 'recent') {
+                fetchLogs();
+            }
+        }
+        
+        function handleSearchKeyup(event) {
+            if (event.key === 'Enter') {
+                searchLogs();
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('search-text').value = '';
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('search-results').innerHTML = 
+                '<div class="info">Ingresa términos de búsqueda para filtrar logs</div>';
+        }
+        
+        function exportLogs(type) {
+            // Esta función puede implementarse para exportar logs a CSV/JSON
+            alert('Función de exportación - Por implementar');
+        }
+        
+        function formatDateForDisplay(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
         }
         
         function formatLogTime(timestamp) {
@@ -607,20 +1095,30 @@
         }
         
         function refreshLogs() {
-            fetchLogs();
+            const activeTab = document.querySelector('.tab-content.active').id;
+            if (activeTab === 'tab-recent') {
+                fetchLogs();
+            }
         }
         
         // Inicializar dashboard
         document.addEventListener('DOMContentLoaded', function() {
             fetchStatus();
             fetchInventoryStats();
+            
+            // Inicializar logs con tab por defecto
             fetchLogs();
             
             // Actualizar estado cada 30 segundos
             statusInterval = setInterval(fetchStatus, 30000);
             
-            // Actualizar logs cada 60 segundos
-            setInterval(fetchLogs, 60000);
+            // Actualizar logs cada 60 segundos (solo si está en tab recientes)
+            setInterval(() => {
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab && activeTab.id === 'tab-recent') {
+                    fetchLogs();
+                }
+            }, 60000);
         });
         
         // Limpiar intervalo al cerrar página

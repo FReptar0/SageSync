@@ -7,32 +7,67 @@ class LogParser {
     }
 
     extractTimestamp(logLine) {
-        const timestampRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
-        const match = logLine.match(timestampRegex);
-        return match ? match[0] : new Date().toISOString();
+        // Múltiples formatos de timestamp
+        const timestampRegexes = [
+            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, // ISO format
+            /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, // Standard format
+            /\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/, // Bracketed format
+            /\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/ // US format
+        ];
+        
+        for (const regex of timestampRegexes) {
+            const match = logLine.match(regex);
+            if (match) {
+                return match[0].replace(/[\[\]]/g, ''); // Remove brackets if present
+            }
+        }
+        
+        // Si no encuentra timestamp, usar el momento actual
+        return new Date().toISOString();
     }
 
-    async readLogs(type = 'all', lines = 100) {
+    async readLogs(type = 'all', lines = 100, fromDate = null, toDate = null) {
         const logFiles = this.getLogFiles(type);
         let logContent = [];
 
         for (const logFile of logFiles) {
             if (fs.existsSync(logFile)) {
-                const content = fs.readFileSync(logFile, 'utf8');
-                const fileLines = content.split('\n').filter(line => line.trim());
-                
-                const fileName = path.basename(logFile);
-                logContent.push(...fileLines.map(line => ({
-                    file: fileName,
-                    content: line,
-                    timestamp: this.extractTimestamp(line),
-                    level: this.extractLogLevel(line)
-                })));
+                try {
+                    const content = fs.readFileSync(logFile, 'utf8');
+                    const fileLines = content.split('\n').filter(line => line.trim());
+                    
+                    const fileName = path.basename(logFile);
+                    const parsedLines = fileLines.map(line => {
+                        const timestamp = this.extractTimestamp(line);
+                        return {
+                            file: fileName,
+                            content: line,
+                            timestamp: timestamp,
+                            level: this.extractLogLevel(line),
+                            date: new Date(timestamp)
+                        };
+                    });
+
+                    // Filtrar por rango de fechas si se especifica
+                    let filteredLines = parsedLines;
+                    if (fromDate || toDate) {
+                        filteredLines = parsedLines.filter(log => {
+                            const logDate = log.date;
+                            if (fromDate && logDate < new Date(fromDate)) return false;
+                            if (toDate && logDate > new Date(toDate)) return false;
+                            return true;
+                        });
+                    }
+
+                    logContent.push(...filteredLines);
+                } catch (error) {
+                    console.error(`Error leyendo archivo de log ${logFile}:`, error);
+                }
             }
         }
 
         // Ordenar por timestamp descendente y limitar líneas
-        logContent.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        logContent.sort((a, b) => b.date - a.date);
         return logContent.slice(0, parseInt(lines));
     }
 
@@ -51,14 +86,39 @@ class LogParser {
 
     extractLogLevel(logLine) {
         const lowerContent = logLine.toLowerCase();
-        if (lowerContent.includes('error') || lowerContent.includes('❌')) {
+        if (lowerContent.includes('error') || lowerContent.includes('❌') || lowerContent.includes('failed') || lowerContent.includes('unauthorized')) {
             return 'error';
-        } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️')) {
+        } else if (lowerContent.includes('warn') || lowerContent.includes('⚠️') || lowerContent.includes('warning')) {
             return 'warn';
-        } else if (lowerContent.includes('info') || lowerContent.includes('✅')) {
+        } else if (lowerContent.includes('info') || lowerContent.includes('✅') || lowerContent.includes('success') || lowerContent.includes('completed')) {
             return 'info';
+        } else if (lowerContent.includes('debug') || lowerContent.includes('🔍')) {
+            return 'debug';
         }
         return 'default';
+    }
+
+    async getLogsByDate(date, type = 'all') {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        return await this.readLogs(type, 1000, startOfDay, endOfDay);
+    }
+
+    async getAvailableDates(type = 'all') {
+        const logs = await this.readLogs(type, 10000); // Obtener muchos logs para análisis
+        const dates = new Set();
+        
+        logs.forEach(log => {
+            const date = new Date(log.timestamp);
+            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            dates.add(dateString);
+        });
+        
+        return Array.from(dates).sort().reverse(); // Más recientes primero
     }
 
     async getLogStats() {

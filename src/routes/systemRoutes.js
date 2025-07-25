@@ -11,5 +11,6 @@ router.get('/test/connections', systemController.testConnections);
 // Rutas de logs
 router.get('/logs', logsController.getLogs);
 router.get('/logs/stats', logsController.getLogStats);
+router.get('/logs/dates', logsController.getAvailableDates);
 
 module.exports = router;
