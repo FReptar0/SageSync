@@ -146,7 +146,7 @@ class SageService {
     }
 
     // Nuevo método para mapear según documentación de Fracttal
-    transformToFracttalInventoryFormat(sageItem) {
+    transformToFracttalInventoryFormat(sageItem, warehouseCode) {
         return {
             // Datos requeridos por Fracttal API
             stock: parseFloat(sageItem.QuantityOnHand) || 0,

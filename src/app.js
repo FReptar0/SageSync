@@ -31,8 +31,8 @@ async function syncInventory() {
         logger.info(`Se obtuvieron ${sageItems.length} items desde Sage300`);
 
         let processedItems = 0;
-        let updatedItems = 0;
-        let createdItems = 0;
+        let updatedItems = 0; // Items que se ajustaron (ya existían en el almacén)
+        let createdItems = 0; // Items que se crearon o asociaron al almacén
         let errors = 0;
         let warehousesCreated = [];
 
@@ -73,28 +73,29 @@ async function syncInventory() {
                 // Verificar si el item existe en Fracttal y está asociado al almacén
                 const itemStatus = await fracttal.checkItemExistsInWarehouse(itemCode, fracttalWarehouse);
                 
-                // Preparar datos para Fracttal
-                const inventoryData = sage.transformToFracttalInventoryFormat(sageItem, fracttalWarehouse);
-                
                 if (itemStatus.exists && itemStatus.inWarehouse) {
-                    // El item existe y está asociado al almacén - ACTUALIZAR
-                    logger.info(`Actualizando item existente: ${itemCode} en almacén ${fracttalWarehouse}`);
+                    // El item existe y está asociado al almacén - ACTUALIZAR con ajuste de inventario
+                    logger.info(`Actualizando inventario existente: ${itemCode} en almacén ${fracttalWarehouse}`);
                     
-                    await fracttal.updateInventoryItem(itemCode, fracttalWarehouse, inventoryData);
+                    const adjustmentData = fracttal.prepareFracttalAdjustmentData(sageItem, fracttalWarehouse);
+                    await fracttal.updateInventoryAdjustment(itemCode, adjustmentData);
                     updatedItems++;
                     
                 } else if (itemStatus.exists && !itemStatus.inWarehouse) {
-                    // El item existe pero no está asociado al almacén - ASOCIAR
-                    logger.info(`Asociando item existente: ${itemCode} al almacén ${fracttalWarehouse}`);
+                    // El item existe pero no está asociado al almacén - CREAR ASOCIACIÓN
+                    logger.info(`Item ${itemCode} existe pero no está en almacén ${fracttalWarehouse} - creando asociación`);
                     
-                    await fracttal.associateItemToWarehouse(itemCode, fracttalWarehouse, inventoryData);
+                    const createData = fracttal.prepareFracttalCreateData(sageItem, fracttalWarehouse);
+                    await fracttal.createInventoryItem(createData);
                     createdItems++;
                     
                 } else {
-                    // El item no existe en Fracttal
-                    logger.warn(`Item ${itemCode} no existe en Fracttal. Necesita ser creado primero en Fracttal.`);
-                    // Nota: La API de Fracttal requiere que los items sean creados primero
-                    // antes de poder asociarlos a almacenes
+                    // El item no existe en Fracttal - CREAR NUEVO ITEM
+                    logger.info(`Creando nuevo item: ${itemCode} en almacén ${fracttalWarehouse}`);
+                    
+                    const createData = fracttal.prepareFracttalCreateData(sageItem, fracttalWarehouse);
+                    await fracttal.createInventoryItem(createData);
+                    createdItems++;
                 }
 
                 processedItems++;
@@ -127,7 +128,7 @@ async function syncInventory() {
         logger.info(`- Total items en Sage300: ${summary.totalItems}`);
         logger.info(`- Items procesados: ${summary.processedItems}`);
         logger.info(`- Items actualizados: ${summary.updatedItems}`);
-        logger.info(`- Items asociados: ${summary.createdItems}`);
+        logger.info(`- Items creados/asociados: ${summary.createdItems}`);
         logger.info(`- Errores: ${summary.errors}`);
         if (warehousesCreated.length > 0) {
             logger.info(`- Almacenes verificados/creados: ${warehousesCreated.join(', ')}`);

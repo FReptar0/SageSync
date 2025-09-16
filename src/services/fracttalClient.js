@@ -256,26 +256,16 @@ class FracttalClient {
         }
     }
 
+    // DEPRECATED: Métodos antiguos - usar createInventoryItem y updateInventoryAdjustment
     async createWarehouseItem(warehouseId, itemData) {
-        try {
-            logger.info(`Creando item en almacén ${warehouseId}: ${itemData.code}`);
-            const response = await this.client.post(`/warehouses/${warehouseId}/items`, itemData);
-            return response.data;
-        } catch (error) {
-            logger.error('Error creando item:', error.response?.data || error.message);
-            throw error;
-        }
+        logger.warn('DEPRECATED: createWarehouseItem - usar createInventoryItem en su lugar');
+        return await this.createInventoryItem(itemData);
     }
 
     async updateWarehouseItem(warehouseId, itemId, itemData) {
-        try {
-            logger.info(`Actualizando item ${itemId} en almacén ${warehouseId}`);
-            const response = await this.client.put(`/warehouses/${warehouseId}/items/${itemId}`, itemData);
-            return response.data;
-        } catch (error) {
-            logger.error('Error actualizando item:', error.response?.data || error.message);
-            throw error;
-        }
+        logger.warn('DEPRECATED: updateWarehouseItem - usar updateInventoryAdjustment en su lugar');
+        const adjustmentData = this.prepareFracttalAdjustmentData(itemData, warehouseId);
+        return await this.updateInventoryAdjustment(itemId, adjustmentData);
     }
 
     async searchWarehouseItem(warehouseId, code) {
@@ -293,21 +283,15 @@ class FracttalClient {
         }
     }
 
+    // DEPRECATED: Método antiguo - usar updateInventoryAdjustment
     async adjustInventory(warehouseId, itemId, quantity, reason = 'Sincronización Sage300') {
-        try {
-            logger.info(`Ajustando inventario - Item: ${itemId}, Cantidad: ${quantity}`);
-            const adjustmentData = {
-                quantity: quantity,
-                reason: reason,
-                type: 'adjustment'
-            };
-
-            const response = await this.client.put(`/warehouses/${warehouseId}/items/${itemId}/adjust`, adjustmentData);
-            return response.data;
-        } catch (error) {
-            logger.error('Error ajustando inventario:', error.response?.data || error.message);
-            throw error;
-        }
+        logger.warn('DEPRECATED: adjustInventory - usar updateInventoryAdjustment en su lugar');
+        const adjustmentData = {
+            code_warehouse: warehouseId,
+            stock: quantity,
+            unit_cost_stock: 0 // Valor por defecto, debería venir de los datos reales
+        };
+        return await this.updateInventoryAdjustment(itemId, adjustmentData);
     }
 
     // Nuevos métodos para consultar almacenes e inventarios
@@ -363,39 +347,49 @@ class FracttalClient {
         }
     }
 
-    // Métodos para sincronización según documentación de Fracttal
-    async updateInventoryItem(itemCode, warehouseCode, inventoryData) {
+    // Métodos para sincronización según documentación oficial de Fracttal
+    
+    // Crear un activo y asociarlo a un almacén
+    async createInventoryItem(itemData) {
         try {
-            logger.info(`Actualizando inventario ${itemCode} en almacén ${warehouseCode}`);
-            const response = await this.client.put(`/inventories/${itemCode}`, {
-                code: itemCode,
-                code_warehouse: warehouseCode,
-                ...inventoryData
-            });
+            logger.info(`Creando item ${itemData.code} en almacén ${itemData.code_warehouse}`);
+            
+            // Validar campos requeridos
+            if (!itemData.code || !itemData.field_1 || !itemData.unit_code || !itemData.unit_description) {
+                throw new Error('Faltan campos requeridos: code, field_1, unit_code, unit_description');
+            }
+            
+            const response = await this.client.post('/inventories/', itemData);
+            logger.info(`Item ${itemData.code} creado exitosamente`);
             return response.data;
         } catch (error) {
-            logger.error('Error actualizando inventario:', error.response?.data || error.message);
+            logger.error('Error creando item:', error.response?.data || error.message);
             throw error;
         }
     }
-
-    async associateItemToWarehouse(itemCode, warehouseCode, inventoryData) {
+    
+    // Ajuste de inventario
+    async updateInventoryAdjustment(itemCode, adjustmentData) {
         try {
-            logger.info(`Asociando item ${itemCode} al almacén ${warehouseCode}`);
-            const response = await this.client.post('/inventories_associate_warehouse/', {
-                code: itemCode,
-                code_warehouse: warehouseCode,
-                ...inventoryData
-            });
+            logger.info(`Ajustando inventario ${itemCode} en almacén ${adjustmentData.code_warehouse}`);
+            
+            // Validar que se envíe al menos stock o unit_cost_stock
+            if (!adjustmentData.stock && !adjustmentData.unit_cost_stock) {
+                throw new Error('Debe enviar al menos stock o unit_cost_stock para el ajuste');
+            }
+            
+            const response = await this.client.put(`/inventories_adjustment/${itemCode}`, adjustmentData);
+            logger.info(`Inventario ${itemCode} ajustado exitosamente`);
             return response.data;
         } catch (error) {
-            logger.error('Error asociando item al almacén:', error.response?.data || error.message);
+            logger.error('Error ajustando inventario:', error.response?.data || error.message);
             throw error;
         }
     }
 
     async checkItemExistsInWarehouse(itemCode, warehouseCode) {
         try {
+            // Intentar obtener el item específico
             const itemDetail = await this.getInventoryByCode(itemCode);
 
             if (!itemDetail.success || !itemDetail.data || itemDetail.data.length === 0) {
@@ -422,6 +416,57 @@ class FracttalClient {
             logger.error('Error verificando existencia del item:', error.response?.data || error.message);
             throw error;
         }
+    }
+    
+    // Método auxiliar para crear item si no existe
+    async createItemIfNotExists(itemCode, warehouseCode, sageItemData) {
+        const itemStatus = await this.checkItemExistsInWarehouse(itemCode, warehouseCode);
+        
+        if (!itemStatus.exists) {
+            // El item no existe, crearlo
+            const createData = this.prepareFracttalCreateData(sageItemData, warehouseCode);
+            return await this.createInventoryItem(createData);
+        }
+        
+        return itemStatus;
+    }
+    
+    // Preparar datos para crear item en Fracttal
+    prepareFracttalCreateData(sageItem, warehouseCode) {
+        return {
+            code: sageItem.ItemNumber?.trim(),
+            field_1: sageItem.Description?.trim() || sageItem.ItemNumber?.trim(), // Nombre (requerido)
+            field_2: '', // Número de parte (opcional)
+            field_3: '', // Fabricante (opcional)
+            field_4: '', // Modelo (opcional)
+            field_5: '', // Otro 1 (opcional)
+            field_6: '', // Otro 2 (opcional)
+            id_type_item: 4, // 4 = Repuesto y suministro (valor por defecto)
+            code_warehouse: warehouseCode,
+            location: sageItem.Location?.trim() || '',
+            max_stock_level: parseFloat(sageItem.MinimumStock) * 3 || 100,
+            min_stock_level: parseFloat(sageItem.MinimumStock) || 0,
+            stock: parseFloat(sageItem.QuantityOnHand) || 0,
+            unit_cost_stock: parseFloat(sageItem.LastCost) || 0,
+            unit_code: 'UN', // Código de unidad (requerido)
+            unit_description: 'Unidad', // Descripción de unidad (requerido)
+            visible_to_all: false,
+            barcode: sageItem.ItemNumber?.trim() || '',
+            notes: `Sincronizado desde Sage300 - ${new Date().toISOString()}`
+        };
+    }
+    
+    // Preparar datos para ajuste de inventario
+    prepareFracttalAdjustmentData(sageItem, warehouseCode) {
+        return {
+            code: sageItem.ItemNumber?.trim(),
+            id_type_item: 4, // 4 = Repuesto y suministro
+            code_warehouse: warehouseCode,
+            stock: parseFloat(sageItem.QuantityOnHand) || 0,
+            unit_cost_stock: parseFloat(sageItem.LastCost) || 0,
+            min_stock_level: parseFloat(sageItem.MinimumStock) || 0,
+            max_stock_level: parseFloat(sageItem.MinimumStock) * 3 || 100
+        };
     }
 
     async createWarehouse(warehouseData) {
