@@ -29,7 +29,7 @@ async function testNewSyncLogic() {
         
         testItems.forEach((item, index) => {
             console.log(`   ${index + 1}. ${item.ItemNumber} - ${item.Description}`);
-            console.log(`      Ubicación: ${item.Location} | Stock: ${item.QuantityOnHand} | Costo: ${item.RecentCost}`);
+            console.log(`      Ubicación: ${item.Location} | Stock: ${item.QuantityOnHand} | Costo: ${item.LastCost}`);
         });
         console.log('');
         
@@ -82,7 +82,7 @@ async function testNewSyncLogic() {
         console.log(`✅ Total items en Sage300: ${stats.TotalItems}`);
         console.log(`✅ Total ubicaciones: ${stats.TotalLocations}`);
         console.log(`✅ Cantidad total: ${Math.round(stats.TotalQuantity)}`);
-        console.log(`✅ Costo promedio: $${Math.round(stats.AverageStandardCost)}\n`);
+        console.log(`✅ Costo promedio: $${Math.round(stats.AverageLastCost)}\n`);
         
         // 5. Mostrar mapeo de ubicaciones
         console.log('5. Mapeo de ubicaciones Sage → Fracttal:');
@@ -96,7 +96,7 @@ async function testNewSyncLogic() {
         console.log('\n📝 Notas importantes:');
         console.log('   - Los items que no existen en Fracttal deben crearse manualmente primero');
         console.log('   - Verificar que el mapeo de ubicaciones sea correcto');
-        console.log('   - Los costos se toman del RecentCost de Sage300');
+        console.log('   - Los costos se toman del LastCost de Sage300');
         console.log('   - Stock máximo se calcula como MinimumStock × 3');
         
     } catch (error) {

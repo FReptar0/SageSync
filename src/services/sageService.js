@@ -97,7 +97,7 @@ class SageService {
                     COUNT(*) as TotalItems,
                     COUNT(DISTINCT L.LOCATION) as TotalLocations,
                     SUM(L.QTYONHAND) as TotalQuantity,
-                    AVG(L.STDCOST) as AverageStandardCost
+                    AVG(L.LASTCOST) as AverageLastCost
                 FROM COPDAT.dbo.ICILOC AS L
                 JOIN COPDAT.dbo.ICITEM AS I
                     ON L.ITEMNO = I.ITEMNO
@@ -137,9 +137,7 @@ class SageService {
             location: sageItem.Location?.trim(),
             quantity: parseFloat(sageItem.QuantityOnHand) || 0,
             minimum_stock: parseFloat(sageItem.MinimumStock) || 0,
-            standard_cost: parseFloat(sageItem.StandardCost) || 0,
-            recent_cost: parseFloat(sageItem.RecentCost) || 0,
-            last_cost: parseFloat(sageItem.LastCost) || 0,
+            cost: parseFloat(sageItem.LastCost) || 0,
             unit_of_measure: 'UN', // Valor por defecto, ajustar según necesidades
             category: 'Inventory', // Valor por defecto
             sync_source: 'Sage300',
@@ -148,11 +146,11 @@ class SageService {
     }
 
     // Nuevo método para mapear según documentación de Fracttal
-    transformToFracttalInventoryFormat(sageItem, warehouseCode) {
+    transformToFracttalInventoryFormat(sageItem) {
         return {
             // Datos requeridos por Fracttal API
             stock: parseFloat(sageItem.QuantityOnHand) || 0,
-            unit_cost_stock: parseFloat(sageItem.RecentCost) || parseFloat(sageItem.LastCost) || 0,
+            unit_cost_stock: parseFloat(sageItem.LastCost) || 0,
             min_stock_level: parseFloat(sageItem.MinimumStock) || 0,
             max_stock_level: parseFloat(sageItem.MinimumStock) * 3 || 100, // Asumiendo max = min * 3
             location: sageItem.Location?.trim() || '',
@@ -161,8 +159,6 @@ class SageService {
             // Metadata adicional
             sync_source: 'Sage300',
             sync_date: new Date().toISOString(),
-            sage_standard_cost: parseFloat(sageItem.StandardCost) || 0,
-            sage_recent_cost: parseFloat(sageItem.RecentCost) || 0,
             sage_last_cost: parseFloat(sageItem.LastCost) || 0
         };
     }

@@ -87,7 +87,7 @@ function testWarehouseMapping() {
         console.log(`${index + 1}. 📦 Item: ${item.ItemNumber}`);
         console.log(`   📝 Descripción: ${item.Description}`);
         console.log(`   📍 Ubicación Sage: ${item.Location}`);
-        console.log(`   📊 Stock: ${item.QuantityOnHand} | Min: ${item.MinimumStock} | Costo: $${item.RecentCost}`);
+        console.log(`   📊 Stock: ${item.QuantityOnHand} | Min: ${item.MinimumStock} | Costo: $${item.LastCost}`);
         
         // Probar el mapeo
         const mappedWarehouse = sage.mapSageLocationToFracttalWarehouse(

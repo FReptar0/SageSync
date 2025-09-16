@@ -165,7 +165,7 @@ describe('SageService', () => {
         TotalItems: 100,
         TotalLocations: 5,
         TotalQuantity: 1000,
-        AverageStandardCost: 150.00
+        AverageLastCost: 150.00
       };
 
       database.query.mockResolvedValueOnce({ recordset: [mockStats] });
