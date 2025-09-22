@@ -133,6 +133,9 @@ dist
 # SageSync Specific Files
 # ==========================================
 
+# Postman Collections
+postman/Fracttal_Environment.json
+
 # Archivos sensibles de autenticación
 .fracttal-token
 .sage-credentials
