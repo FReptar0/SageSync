@@ -1,0 +1,550 @@
+{
+	"info": {
+		"_postman_id": "fracttal-api-collection-uuid",
+		"name": "Fracttal API Collection",
+		"description": "Colección de APIs directas para Fracttal - Gestión de inventario y almacenes",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Autenticación",
+			"item": [
+				{
+					"name": "OAuth Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('fracttal_access_token', responseJson.access_token);",
+									"    pm.environment.set('fracttal_token_type', responseJson.token_type);",
+									"    pm.environment.set('fracttal_expires_in', responseJson.expires_in);",
+									"    if (responseJson.refresh_token) {",
+									"        pm.environment.set('fracttal_refresh_token', responseJson.refresh_token);",
+									"        console.log('🔄 Refresh token guardado para renovación automática');",
+									"    }",
+									"    console.log('✅ Token guardado:', responseJson.access_token);",
+									"    console.log('⏰ Expira en:', responseJson.expires_in, 'segundos (2 horas)');",
+									"} else {",
+									"    console.error('❌ Error en autenticación:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{fracttal_client_id}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{fracttal_client_secret}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{fracttal_oauth_url}}",
+							"host": [
+								"{{fracttal_oauth_url}}"
+							]
+						},
+						"description": "Obtiene el token de acceso OAuth2 para Fracttal API"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('fracttal_access_token', responseJson.access_token);",
+									"    pm.environment.set('fracttal_token_type', responseJson.token_type);",
+									"    pm.environment.set('fracttal_expires_in', responseJson.expires_in);",
+									"    if (responseJson.refresh_token) {",
+									"        pm.environment.set('fracttal_refresh_token', responseJson.refresh_token);",
+									"    }",
+									"    console.log('✅ Token renovado exitosamente:', responseJson.access_token);",
+									"    console.log('⏰ Expira en:', responseJson.expires_in, 'segundos');",
+									"} else {",
+									"    console.error('❌ Error renovando token:', pm.response.text());",
+									"    console.warn('💡 Puede que necesites hacer OAuth completo de nuevo');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{fracttal_client_id}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{fracttal_client_secret}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "refresh_token",
+									"type": "text"
+								},
+								{
+									"key": "refresh_token",
+									"value": "{{fracttal_refresh_token}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{fracttal_oauth_url}}",
+							"host": [
+								"{{fracttal_oauth_url}}"
+							]
+						},
+						"description": "Renueva el token de acceso usando el refresh token (válido por 2 horas)"
+					},
+					"response": []
+				}
+			],
+			"description": "Autenticación OAuth2 para Fracttal"
+		},
+		{
+			"name": "🏬 Almacenes (Warehouses)",
+			"item": [
+				{
+					"name": "List All Warehouses",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{fracttal_base_url}}/warehouses?page=1&per_page=100",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"warehouses"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Lista todos los almacenes disponibles"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Warehouse by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{fracttal_base_url}}/warehouses/{{warehouse_id}}",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"warehouses",
+								"{{warehouse_id}}"
+							]
+						},
+						"description": "Obtiene un almacén específico por ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Almacén Test\",\n    \"code\": \"TEST001\",\n    \"description\": \"Almacén creado desde Postman\",\n    \"location\": \"Ubicación de prueba\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{fracttal_base_url}}/warehouses",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"warehouses"
+							]
+						},
+						"description": "Crea un nuevo almacén"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de almacenes en Fracttal"
+		},
+		{
+			"name": "📦 Items (Inventario)",
+			"item": [
+				{
+					"name": "List All Items",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{fracttal_base_url}}/items?page=1&per_page=50&warehouse_id={{warehouse_id}}",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"items"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "50"
+								},
+								{
+									"key": "warehouse_id",
+									"value": "{{warehouse_id}}",
+									"description": "Filtrar por almacén específico"
+								}
+							]
+						},
+						"description": "Lista todos los items de inventario"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{fracttal_base_url}}/items/{{item_id}}",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"items",
+								"{{item_id}}"
+							]
+						},
+						"description": "Obtiene un item específico por ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"item_number\": \"{{item_code}}\",\n    \"description\": \"Item creado desde Postman\",\n    \"unit_cost\": 150.75,\n    \"unit_of_measure\": \"UN\",\n    \"category\": \"Test Category\",\n    \"warehouse_id\": {{warehouse_id}},\n    \"quantity\": 10,\n    \"minimum_stock\": 5,\n    \"maximum_stock\": 50,\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{fracttal_base_url}}/items",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"items"
+							]
+						},
+						"description": "Crea un nuevo item en el inventario"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Item actualizado desde Postman\",\n    \"unit_cost\": 175.50,\n    \"quantity\": 25,\n    \"minimum_stock\": 8,\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{fracttal_base_url}}/items/{{item_id}}",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"items",
+								"{{item_id}}"
+							]
+						},
+						"description": "Actualiza un item existente"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de items de inventario en Fracttal"
+		},
+		{
+			"name": "👤 Usuario",
+			"item": [
+				{
+					"name": "Get User Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{fracttal_access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{fracttal_base_url}}/user",
+							"host": [
+								"{{fracttal_base_url}}"
+							],
+							"path": [
+								"user"
+							]
+						},
+						"description": "Obtiene información del usuario autenticado"
+					},
+					"response": []
+				}
+			],
+			"description": "Información del usuario"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Verificar si tenemos token válido",
+					"if (pm.request.auth && pm.request.auth.type === 'bearer') {",
+					"    const token = pm.environment.get('fracttal_access_token');",
+					"    const refreshToken = pm.environment.get('fracttal_refresh_token');",
+					"    const expiresIn = pm.environment.get('fracttal_expires_in');",
+					"    ",
+					"    if (!token) {",
+					"        console.warn('⚠️ No hay token de Fracttal. Ejecuta primero \"OAuth Token\"');",
+					"    } else if (refreshToken) {",
+					"        console.log('🔄 Token y refresh token disponibles para renovación automática');",
+					"    } else {",
+					"        console.log('✅ Token disponible (sin refresh token)');",
+					"    }",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Log de respuesta",
+					"console.log(`${pm.request.method} ${pm.request.url} → ${pm.response.code} ${pm.response.status}`);",
+					"",
+					"// Verificar errores comunes",
+					"if (pm.response.code === 401) {",
+					"    const refreshToken = pm.environment.get('fracttal_refresh_token');",
+					"    if (refreshToken) {",
+					"        console.error('❌ Error 401: Token expirado. 🔄 Usa \"Refresh Token\" para renovar automáticamente');",
+					"    } else {",
+					"        console.error('❌ Error 401: Token expirado. Ejecuta \"OAuth Token\" para reautenticarte');",
+					"    }",
+					"} else if (pm.response.code === 403) {",
+					"    console.error('❌ Error 403: Sin permisos para este endpoint');",
+					"} else if (pm.response.code === 404) {",
+					"    console.error('❌ Error 404: Endpoint no encontrado');",
+					"} else if (pm.response.code >= 500) {",
+					"    console.error('❌ Error del servidor:', pm.response.text());",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "collection_version",
+			"value": "2.0.0",
+			"type": "string"
+		}
+	]
+}
