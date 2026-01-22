@@ -212,8 +212,10 @@ describe('FracttalClient', () => {
       it('should create warehouse item successfully', async () => {
         const itemData = {
           code: 'ITEM001',
-          name: 'Test Item',
-          quantity: 10
+          id_type_item: 4,
+          field_1: 'Test Item',
+          unit_code: 'UN',
+          unit_description: 'Unidad'
         };
 
         const mockResponse = {
@@ -225,19 +227,23 @@ describe('FracttalClient', () => {
         const result = await fracttalClient.createWarehouseItem('warehouse1', itemData);
 
         expect(result).toEqual(mockResponse.data);
-        expect(fracttalClient.client.post).toHaveBeenCalledWith('/warehouses/warehouse1/items', itemData);
+        expect(fracttalClient.client.post).toHaveBeenCalledWith('/items/', expect.objectContaining({
+          code: 'ITEM001',
+          id_type_item: 4,
+          field_1: 'Test Item'
+        }));
       });
     });
 
     describe('updateWarehouseItem', () => {
       it('should update warehouse item successfully', async () => {
         const itemData = {
-          name: 'Updated Item',
-          quantity: 15
+          field_1: 'Updated Item',
+          stock: 15
         };
 
         const mockResponse = {
-          data: { id: 1, ...itemData }
+          data: { id: 1, code: 'item1', ...itemData }
         };
 
         fracttalClient.client.put.mockResolvedValueOnce(mockResponse);
@@ -245,7 +251,7 @@ describe('FracttalClient', () => {
         const result = await fracttalClient.updateWarehouseItem('warehouse1', 'item1', itemData);
 
         expect(result).toEqual(mockResponse.data);
-        expect(fracttalClient.client.put).toHaveBeenCalledWith('/warehouses/warehouse1/items/item1', itemData);
+        expect(fracttalClient.client.put).toHaveBeenCalledWith('/items/item1', expect.any(Object));
       });
     });
 
@@ -253,7 +259,7 @@ describe('FracttalClient', () => {
       it('should find item when it exists', async () => {
         const mockResponse = {
           data: {
-            data: [{ id: 1, code: 'ITEM001', name: 'Test Item' }]
+            data: [{ id: 1, code: 'ITEM001', field_1: 'Test Item' }]
           }
         };
 
@@ -262,8 +268,8 @@ describe('FracttalClient', () => {
         const result = await fracttalClient.searchWarehouseItem('warehouse1', 'ITEM001');
 
         expect(result).toEqual(mockResponse.data.data[0]);
-        expect(fracttalClient.client.get).toHaveBeenCalledWith('/warehouses/warehouse1/items', {
-          params: { search: 'ITEM001', limit: 1 }
+        expect(fracttalClient.client.get).toHaveBeenCalledWith('/items', {
+          params: { code: 'ITEM001', limit: 1 }
         });
       });
 

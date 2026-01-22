@@ -270,9 +270,9 @@ class FracttalClient {
 
     async searchWarehouseItem(warehouseId, code) {
         try {
-            const response = await this.client.get(`/warehouses/${warehouseId}/items`, {
+            const response = await this.client.get(`/items`, {
                 params: {
-                    search: code,
+                    code: code,
                     limit: 1
                 }
             });
@@ -294,7 +294,7 @@ class FracttalClient {
         return await this.updateInventoryAdjustment(itemId, adjustmentData);
     }
 
-    // Nuevos métodos para consultar almacenes e inventarios
+    // Métodos para consultar almacenes e inventarios según documentación oficial
     async getWarehouseByCode(code, params = {}) {
         try {
             console.log(`🔍 Consultando almacén con código: ${code}`);
@@ -327,39 +327,45 @@ class FracttalClient {
 
     async getInventoryByCode(code) {
         try {
-            logger.info(`Consultando inventario con código: ${code}`);
-            const response = await this.client.get(`/inventories/${code}`);
+            logger.info(`Consultando item con código: ${code}`);
+            const response = await this.client.get(`/items/${code}`);
             return response.data;
         } catch (error) {
-            logger.error('Error consultando inventario:', error.response?.data || error.message);
+            logger.error('Error consultando item:', error.response?.data || error.message);
             throw error;
         }
     }
 
     async getAllInventories(params = {}) {
         try {
-            logger.info('Consultando todos los inventarios');
-            const response = await this.client.get('/inventories', { params });
+            logger.info('Consultando todos los items');
+            const response = await this.client.get('/items', { params });
             return response.data;
         } catch (error) {
-            logger.error('Error consultando inventarios:', error.response?.data || error.message);
+            logger.error('Error consultando items:', error.response?.data || error.message);
             throw error;
         }
     }
 
     // Métodos para sincronización según documentación oficial de Fracttal
     
-    // Crear un activo y asociarlo a un almacén
+    // Crear un activo (item) según documentación oficial
     async createInventoryItem(itemData) {
         try {
-            logger.info(`Creando item ${itemData.code} en almacén ${itemData.code_warehouse}`);
+            logger.info(`Creando item ${itemData.code}`);
             
-            // Validar campos requeridos
-            if (!itemData.code || !itemData.field_1 || !itemData.unit_code || !itemData.unit_description) {
-                throw new Error('Faltan campos requeridos: code, field_1, unit_code, unit_description');
+            // Validar campos requeridos según documentación
+            if (!itemData.code || !itemData.id_type_item || !itemData.field_1) {
+                throw new Error('Faltan campos requeridos: code, id_type_item, field_1');
             }
             
-            const response = await this.client.post('/inventories/', itemData);
+            // Para repuestos y herramientas, unit_code y unit_description son obligatorios
+            if ((itemData.id_type_item === 3 || itemData.id_type_item === 4) && 
+                (!itemData.unit_code || !itemData.unit_description)) {
+                throw new Error('Para repuestos/herramientas son requeridos: unit_code, unit_description');
+            }
+            
+            const response = await this.client.post('/items/', itemData);
             logger.info(`Item ${itemData.code} creado exitosamente`);
             return response.data;
         } catch (error) {
@@ -368,23 +374,24 @@ class FracttalClient {
         }
     }
     
-    // Ajuste de inventario
-    async updateInventoryAdjustment(itemCode, adjustmentData) {
+    // Actualizar un activo (item) según documentación oficial
+    async updateInventoryItem(itemCode, itemData) {
         try {
-            logger.info(`Ajustando inventario ${itemCode} en almacén ${adjustmentData.code_warehouse}`);
+            logger.info(`Actualizando item ${itemCode}`);
             
-            // Validar que se envíe al menos stock o unit_cost_stock
-            if (!adjustmentData.stock && !adjustmentData.unit_cost_stock) {
-                throw new Error('Debe enviar al menos stock o unit_cost_stock para el ajuste');
-            }
-            
-            const response = await this.client.put(`/inventories_adjustment/${itemCode}`, adjustmentData);
-            logger.info(`Inventario ${itemCode} ajustado exitosamente`);
+            const response = await this.client.put(`/items/${itemCode}`, itemData);
+            logger.info(`Item ${itemCode} actualizado exitosamente`);
             return response.data;
         } catch (error) {
-            logger.error('Error ajustando inventario:', error.response?.data || error.message);
+            logger.error('Error actualizando item:', error.response?.data || error.message);
             throw error;
         }
+    }
+
+    // Alias para compatibilidad con código existente
+    async updateInventoryAdjustment(itemCode, adjustmentData) {
+        logger.warn('updateInventoryAdjustment is deprecated - using updateInventoryItem instead');
+        return await this.updateInventoryItem(itemCode, adjustmentData);
     }
 
     async checkItemExistsInWarehouse(itemCode, warehouseCode) {
