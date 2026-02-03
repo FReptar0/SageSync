@@ -375,10 +375,17 @@ class FracttalClient {
     }
     
     // Actualizar un activo (item) según documentación oficial
+    // https://api.fracttal.com/reference/actualizar-un-activo
     async updateInventoryItem(itemCode, itemData) {
         try {
             logger.info(`Actualizando item ${itemCode}`);
             
+            // Validar que code y id_type_item estén presentes (requeridos por Fracttal)
+            if (!itemData.id_type_item) {
+                throw new Error('id_type_item es requerido para actualizar un item');
+            }
+            
+            // Nota: Según documentación, enviar solo los parámetros que se desean actualizar
             const response = await this.client.put(`/items/${itemCode}`, itemData);
             logger.info(`Item ${itemCode} actualizado exitosamente`);
             return response.data;
@@ -387,11 +394,164 @@ class FracttalClient {
             throw error;
         }
     }
+    
+    // Método alternativo usando ID numérico de Fracttal en lugar de código
+    async updateInventoryItemById(itemId, itemData) {
+        try {
+            logger.info(`Actualizando item por ID: ${itemId}`);
+            
+            if (!itemData.id_type_item) {
+                throw new Error('id_type_item es requerido para actualizar un item');
+            }
+            
+            const response = await this.client.put(`/items/?id_fracttal=${itemId}`, itemData);
+            logger.info(`Item ID ${itemId} actualizado exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error actualizando item por ID:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // =====================================================================
+    // WAREHOUSE INVENTORY METHODS (POST /inventories/, etc.)
+    // These use the correct endpoints for warehouse-associated inventory
+    // =====================================================================
+
+    // Create item AND associate it to a warehouse in one call
+    // POST /inventories/ - Creates item with warehouse association and stock
+    async createInventoryWithWarehouse(itemData) {
+        try {
+            logger.info(`Creando item ${itemData.code} en almacén ${itemData.code_warehouse || itemData.id_warehouse}`);
+
+            if (!itemData.code || !itemData.field_1 || !itemData.unit_code || !itemData.unit_description) {
+                throw new Error('Faltan campos requeridos: code, field_1, unit_code, unit_description');
+            }
+
+            if (!itemData.code_warehouse && !itemData.id_warehouse) {
+                throw new Error('Se requiere code_warehouse o id_warehouse para asociar a un almacén');
+            }
+
+            const response = await this.client.post('/inventories/', itemData);
+            logger.info(`Item ${itemData.code} creado y asociado a almacén exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error creando item con almacén:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Associate an existing item to a warehouse
+    // POST /inventories_associate_warehouse/
+    async associateItemToWarehouse(code, warehouseCode, stockData = {}) {
+        try {
+            logger.info(`Asociando item ${code} al almacén ${warehouseCode}`);
+
+            const payload = {
+                code,
+                code_warehouse: warehouseCode,
+                stock: stockData.stock || 0,
+                unit_cost_stock: stockData.unit_cost_stock || 0,
+                max_stock_level: stockData.max_stock_level || 0,
+                min_stock_level: stockData.min_stock_level || 0,
+                location: stockData.location || '',
+                order_quantity: stockData.order_quantity || 0
+            };
+
+            const response = await this.client.post('/inventories_associate_warehouse/', payload);
+            logger.info(`Item ${code} asociado al almacén ${warehouseCode} exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error asociando item a almacén:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Adjust stock for an item in a warehouse
+    // PUT /inventories_adjustment/{code}
+    async adjustInventoryStock(itemCode, warehouseData) {
+        try {
+            logger.info(`Ajustando inventario de ${itemCode} en almacén ${warehouseData.code_warehouse || warehouseData.id_warehouse}`);
+
+            const response = await this.client.put(`/inventories_adjustment/${itemCode}`, warehouseData);
+            logger.info(`Inventario de ${itemCode} ajustado exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error ajustando inventario:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Query all items and stock in a specific warehouse
+    // GET /warehouses_items/{code}
+    async getWarehouseStock(warehouseCode, params = {}) {
+        try {
+            logger.info(`Consultando stock del almacén ${warehouseCode}`);
+            const response = await this.client.get(`/warehouses_items/`, {
+                params: { code: warehouseCode, ...params }
+            });
+            return response.data;
+        } catch (error) {
+            logger.error('Error consultando stock de almacén:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Query an item with its warehouse associations and stock
+    // GET /inventories/{code}
+    async getItemInventory(itemCode) {
+        try {
+            logger.info(`Consultando inventario del item ${itemCode}`);
+            const response = await this.client.get(`/inventories/${itemCode}`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error consultando inventario del item:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Create a warehouse entry (incoming goods)
+    // POST /warehouse_entries_orders/{warehouse_code}
+    async createWarehouseEntry(warehouseCode, entryData) {
+        try {
+            logger.info(`Creando entrada al almacén ${warehouseCode}`);
+
+            if (!entryData.movement_type || !entryData.document || !entryData.code_user || !entryData.items) {
+                throw new Error('Faltan campos requeridos: movement_type, document, code_user, items');
+            }
+
+            const response = await this.client.post(`/warehouse_entries_orders/${warehouseCode}`, entryData);
+            logger.info(`Entrada al almacén ${warehouseCode} creada exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error creando entrada de almacén:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Create a warehouse exit (outgoing goods)
+    // POST /warehouse_outputs_orders/
+    async createWarehouseExit(exitData) {
+        try {
+            logger.info(`Creando salida de almacén ${exitData.warehouse_code}`);
+
+            if (!exitData.warehouse_code || !exitData.responsible_code || !exitData.id_movement_type) {
+                throw new Error('Faltan campos requeridos: warehouse_code, responsible_code, id_movement_type');
+            }
+
+            const response = await this.client.post('/warehouse_outputs_orders/', exitData);
+            logger.info(`Salida de almacén ${exitData.warehouse_code} creada exitosamente`);
+            return response.data;
+        } catch (error) {
+            logger.error('Error creando salida de almacén:', error.response?.data || error.message);
+            throw error;
+        }
+    }
 
     // Alias para compatibilidad con código existente
     async updateInventoryAdjustment(itemCode, adjustmentData) {
-        logger.warn('updateInventoryAdjustment is deprecated - using updateInventoryItem instead');
-        return await this.updateInventoryItem(itemCode, adjustmentData);
+        logger.warn('updateInventoryAdjustment is deprecated - using adjustInventoryStock instead');
+        return await this.adjustInventoryStock(itemCode, adjustmentData);
     }
 
     async checkItemExistsInWarehouse(itemCode, warehouseCode) {

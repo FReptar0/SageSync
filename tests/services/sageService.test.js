@@ -86,7 +86,7 @@ describe('SageService', () => {
 
       expect(result).toEqual(mockItems);
       expect(database.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND L.LOCATION = @location'),
+        expect.stringContaining('AND B.LOCATION = @location'),
         { location: 'WH01' }
       );
     });
@@ -107,7 +107,7 @@ describe('SageService', () => {
 
       expect(result).toEqual(mockItem);
       expect(database.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND L.ITEMNO = @itemNumber'),
+        expect.stringContaining('AND B.ITEMNO = @itemNumber'),
         { itemNumber: 'ITEM001' }
       );
     });
@@ -134,7 +134,7 @@ describe('SageService', () => {
 
       expect(result).toEqual(mockItem);
       expect(database.query).toHaveBeenCalledWith(
-        expect.stringContaining('AND L.LOCATION = @location'),
+        expect.stringContaining('AND B.LOCATION = @location'),
         { itemNumber: 'ITEM001', location: 'WH01' }
       );
     });
@@ -154,7 +154,7 @@ describe('SageService', () => {
 
       expect(result).toEqual(['WH01', 'WH02', 'WH03']);
       expect(database.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT DISTINCT L.LOCATION')
+        expect.stringContaining('SELECT DISTINCT B.LOCATION')
       );
     });
   });
@@ -201,9 +201,7 @@ describe('SageService', () => {
         location: 'WH01',
         quantity: 10,
         minimum_stock: 5,
-        standard_cost: 100.00,
-        recent_cost: 110.00,
-        last_cost: 95.00,
+        cost: 95.00,
         unit_of_measure: 'UN',
         category: 'Inventory',
         sync_source: 'Sage300',
@@ -230,9 +228,7 @@ describe('SageService', () => {
         location: 'WH01',
         quantity: 0,
         minimum_stock: 0,
-        standard_cost: 0,
-        recent_cost: 0,
-        last_cost: 0,
+        cost: 0,
         unit_of_measure: 'UN',
         category: 'Inventory',
         sync_source: 'Sage300',

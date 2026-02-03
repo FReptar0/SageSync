@@ -7,21 +7,21 @@ class SageService {
         this.configManager = new ConfigManager();
         this.inventoryQuery = `
             SELECT
-                L.ITEMNO        AS ItemNumber,
+                B.ITEMNO        AS ItemNumber,
                 I.[DESC]        AS Description,
-                L.LOCATION      AS Location,
-                L.QTYONHAND     AS QuantityOnHand,
-                L.QTYMINREQ     AS MinimumStock,
-                L.STDCOST       AS StandardCost,
-                L.RECENTCOST    AS RecentCost,
-                L.LASTCOST      AS LastCost
-            FROM COPDAT.dbo.ICILOC AS L
+                B.LOCATION      AS Location,
+                ISNULL(B.QTYONHAND-B.QTYCOMMIT-B.QTYSHNOCST+B.QTYRENOCST+B.QTYADNOCST,0) AS QuantityOnHand,
+                B.QTYMINREQ     AS MinimumStock,
+                B.STDCOST       AS StandardCost,
+                B.RECENTCOST    AS RecentCost,
+                B.LASTCOST      AS LastCost
+            FROM COPDAT.dbo.ICILOC AS B
             JOIN COPDAT.dbo.ICITEM AS I
-                ON L.ITEMNO = I.ITEMNO
+                ON B.ITEMNO = I.ITEMNO
             WHERE I.INACTIVE = 0
                 AND I.STOCKITEM = 1
-                AND L.LOCATION = 'GRAL'
-            ORDER BY L.ITEMNO, L.LOCATION
+                AND B.LOCATION = 'GRAL'
+            ORDER BY B.ITEMNO, B.LOCATION
         `;
     }
 
@@ -40,7 +40,7 @@ class SageService {
     async getInventoryItemsByLocation(location) {
         try {
             logger.info(`Obteniendo items de inventario para ubicación: ${location}`);
-            const query = this.inventoryQuery + ' AND L.LOCATION = @location';
+            const query = this.inventoryQuery + ' AND B.LOCATION = @location';
             const result = await database.query(query, { location });
             logger.info(`Se obtuvieron ${result.recordset.length} items para la ubicación ${location}`);
             return result.recordset;
@@ -52,11 +52,11 @@ class SageService {
 
     async getInventoryItemByCode(itemNumber, location = null) {
         try {
-            let query = this.inventoryQuery + ' AND L.ITEMNO = @itemNumber';
+            let query = this.inventoryQuery + ' AND B.ITEMNO = @itemNumber';
             let parameters = { itemNumber };
             
             if (location) {
-                query += ' AND L.LOCATION = @location';
+                query += ' AND B.LOCATION = @location';
                 parameters.location = location;
             }
 
@@ -72,13 +72,13 @@ class SageService {
         try {
             logger.info('Obteniendo ubicaciones únicas desde Sage300...');
             const query = `
-                SELECT DISTINCT L.LOCATION
-                FROM COPDAT.dbo.ICILOC AS L
+                SELECT DISTINCT B.LOCATION
+                FROM COPDAT.dbo.ICILOC AS B
                 JOIN COPDAT.dbo.ICITEM AS I
-                    ON L.ITEMNO = I.ITEMNO
+                    ON B.ITEMNO = I.ITEMNO
                 WHERE I.INACTIVE = 0
                     AND I.STOCKITEM = 1
-                ORDER BY L.LOCATION
+                ORDER BY B.LOCATION
             `;
             const result = await database.query(query);
             logger.info(`Se encontraron ${result.recordset.length} ubicaciones únicas`);
@@ -95,12 +95,12 @@ class SageService {
             const query = `
                 SELECT 
                     COUNT(*) as TotalItems,
-                    COUNT(DISTINCT L.LOCATION) as TotalLocations,
-                    SUM(L.QTYONHAND) as TotalQuantity,
-                    AVG(L.LASTCOST) as AverageLastCost
-                FROM COPDAT.dbo.ICILOC AS L
+                    COUNT(DISTINCT B.LOCATION) as TotalLocations,
+                    SUM(ISNULL(B.QTYONHAND-B.QTYCOMMIT-B.QTYSHNOCST+B.QTYRENOCST+B.QTYADNOCST,0)) as TotalQuantity,
+                    AVG(B.LASTCOST) as AverageLastCost
+                FROM COPDAT.dbo.ICILOC AS B
                 JOIN COPDAT.dbo.ICITEM AS I
-                    ON L.ITEMNO = I.ITEMNO
+                    ON B.ITEMNO = I.ITEMNO
                 WHERE I.INACTIVE = 0
                     AND I.STOCKITEM = 1
             `;

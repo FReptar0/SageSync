@@ -16,6 +16,23 @@
         "visible_to_all": true,
         "material_request_approval": false
       }
+    }, 
+    "TEST": {
+      "fracttalWarehouseCode": "TEST001",
+      "fracttalWarehouseName": "ALMACEN TEST",
+      "description": "Almacén de Pruebas",
+      "autoCreate": true,
+      "warehouseConfig": {
+        "description": "ALMACEN DE PRUEBAS - Sincronizado desde Sage300",
+        "address": "Calle Falsa 123",
+        "state": "ZACATECAS",
+        "country": "México",
+        "city": "MORELOS, ZACATECAS",
+        "active": true,
+        "external_integration": true,
+        "visible_to_all": true,
+        "material_request_approval": false
+      }
     }
   },
   "defaultWarehouse": {
