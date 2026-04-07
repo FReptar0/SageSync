@@ -9,17 +9,17 @@ Requirements for license control system. Each maps to roadmap phases.
 
 ### License Validation
 
-- [ ] **LIC-01**: App validates license against remote server on startup (3 retries with exponential backoff)
-- [ ] **LIC-02**: App validates license periodically on each cron sync cycle
-- [ ] **LIC-03**: License response verified via HMAC-SHA256 signature with shared secret
-- [ ] **LIC-04**: Timestamp freshness check rejects responses older than 5 minutes
+- [x] **LIC-01**: App validates license against remote server on startup (3 retries with exponential backoff)
+- [x] **LIC-02**: App validates license periodically on each cron sync cycle
+- [x] **LIC-03**: License response verified via HMAC-SHA256 signature with shared secret
+- [x] **LIC-04**: Timestamp freshness check rejects responses older than 5 minutes
 
 ### License Enforcement
 
 - [ ] **ENF-01**: All API routes except /api/system/license return 503 when license is invalid
 - [ ] **ENF-02**: Cron sync cycles are skipped when license is invalid
-- [ ] **ENF-03**: App exits with code 1 if license validation fails at startup after retries
-- [ ] **ENF-04**: Three-state cache model (VALID/INVALID/ERROR) with 24h ERROR→INVALID TTL
+- [x] **ENF-03**: App exits with code 1 if license validation fails at startup after retries
+- [x] **ENF-04**: Three-state cache model (VALID/INVALID/ERROR) with 24h ERROR→INVALID TTL
 
 ### License Status
 
@@ -28,8 +28,8 @@ Requirements for license control system. Each maps to roadmap phases.
 
 ### Configuration
 
-- [ ] **CFG-01**: License configured via environment variables (LICENSE_API_URL, HMAC_SECRET, SAGESYNC_API_KEY)
-- [ ] **CFG-02**: DNS bypass detection logs warning when license server resolves to private/loopback IP
+- [x] **CFG-01**: License configured via environment variables (LICENSE_API_URL, HMAC_SECRET, SAGESYNC_API_KEY)
+- [x] **CFG-02**: DNS bypass detection logs warning when license server resolves to private/loopback IP
 
 ## v2 Requirements
 
@@ -50,14 +50,14 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CFG-01 | Phase 1 | Pending |
-| CFG-02 | Phase 1 | Pending |
-| LIC-01 | Phase 1 | Pending |
-| LIC-02 | Phase 1 | Pending |
-| LIC-03 | Phase 1 | Pending |
-| LIC-04 | Phase 1 | Pending |
-| ENF-03 | Phase 1 | Pending |
-| ENF-04 | Phase 1 | Pending |
+| CFG-01 | Phase 1 | Complete |
+| CFG-02 | Phase 1 | Complete |
+| LIC-01 | Phase 1 | Complete |
+| LIC-02 | Phase 1 | Complete |
+| LIC-03 | Phase 1 | Complete |
+| LIC-04 | Phase 1 | Complete |
+| ENF-03 | Phase 1 | Complete |
+| ENF-04 | Phase 1 | Complete |
 | ENF-01 | Phase 2 | Pending |
 | ENF-02 | Phase 2 | Pending |
 | STS-01 | Phase 2 | Pending |
