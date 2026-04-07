@@ -21,7 +21,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
 // Repositorio destino (cambiar por tu URL real)
-const TARGET_REPO = process.env.OBFUSCATED_REPO_URL || 'https://github.com/FReptar0/sagesync-dist.git';
+const TARGET_REPO = process.env.OBFUSCATED_REPO_URL || 'https://github.com/FReptar0/SageSync-dist.git';
 
 // Carpetas/archivos a copiar tal cual (sin ofuscar)
 const COPY_AS_IS = [

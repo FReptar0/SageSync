@@ -10,7 +10,7 @@ on:
   workflow_dispatch:  # Permite ejecución manual desde GitHub UI
 
 env:
-  TARGET_REPO: FReptar0/sagesync-dist  # Cambiar al nombre real de tu repo destino
+  TARGET_REPO: FReptar0/SageSync-dist  # Cambiar al nombre real de tu repo destino
   NODE_VERSION: '18'
 
 jobs:
