@@ -23,7 +23,9 @@
     "maintenance:token": "node src/maintenance.js renew-token",
     "maintenance:backup": "node src/maintenance.js backup-config",
     "install-service": "node src/service-installer.js install",
-    "uninstall-service": "node src/service-installer.js uninstall"
+    "uninstall-service": "node src/service-installer.js uninstall",
+    "obfuscate": "node scripts/obfuscate.js",
+    "obfuscate:push": "node scripts/obfuscate.js --push"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -36,6 +38,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "javascript-obfuscator": "^5.4.1",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
     "supertest": "^6.3.4"
