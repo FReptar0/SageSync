@@ -1,3 +1,7 @@
+// License gate -- must run before any service initialization
+const { validateEnv } = require('./utils/validateEnv');
+const { validate: validateLicense, isValid } = require('./services/LicenseValidator');
+
 const SageService = require('./services/sageService');
 const FracttalClient = require('./services/fracttalClient');
 const ConfigManager = require('./config/configManager');
@@ -5,12 +9,22 @@ const cron = require('node-cron');
 const logger = require('./config/logger');
 require('dotenv').config();
 
+// Validate environment variables first (exits on missing vars)
+validateEnv();
+
 const sage = new SageService();
 const fracttal = new FracttalClient();
 const configManager = new ConfigManager();
 
 async function syncInventory() {
     try {
+        // LIC-02: Re-validate license on each sync cycle (periodic, no startup flag)
+        await validateLicense();
+        if (!isValid()) {
+            logger.error('License invalid — aborting sync');
+            return;
+        }
+
         logger.info('Iniciando proceso de sincronización de inventario...');
 
         // Validar configuración
@@ -40,7 +54,7 @@ async function syncInventory() {
             try {
                 const itemCode = sageItem.ItemNumber?.trim();
                 const sageLocation = sageItem.Location?.trim();
-                
+
                 if (!itemCode || !sageLocation) {
                     logger.warn(`Item sin código o ubicación válida: ${JSON.stringify(sageItem)}`);
                     continue;
@@ -48,11 +62,11 @@ async function syncInventory() {
 
                 // Mapear ubicación de Sage a almacén de Fracttal
                 const fracttalWarehouse = sage.mapSageLocationToFracttalWarehouse(
-                    sageLocation, 
-                    itemCode, 
+                    sageLocation,
+                    itemCode,
                     sageItem.Description?.trim() || ''
                 );
-                
+
                 // Si no se puede mapear la ubicación, saltar este item
                 if (!fracttalWarehouse) {
                     logger.warn(`Ubicación ${sageLocation} no soportada para item ${itemCode} - saltando`);
@@ -69,37 +83,63 @@ async function syncInventory() {
                     logger.error(`Error asegurando que el almacén ${fracttalWarehouse} existe:`, warehouseError.message);
                     continue;
                 }
-                
+
                 // Verificar si el item existe en Fracttal y está asociado al almacén
                 const itemStatus = await fracttal.checkItemExistsInWarehouse(itemCode, fracttalWarehouse);
-                
+
+                // Datos de ajuste de inventario (stock, costo, min/max)
+                const adjustmentData = {
+                    code_warehouse: fracttalWarehouse,
+                    stock: parseFloat(sageItem.QuantityOnHand) || 0,
+                    unit_cost_stock: parseFloat(sageItem.LastCost) || 0,
+                    min_stock_level: parseFloat(sageItem.MinimumStock) || 0,
+                    max_stock_level: parseFloat(sageItem.MinimumStock) * 3 || 100
+                };
+
                 if (itemStatus.exists && itemStatus.inWarehouse) {
-                    // El item existe y está asociado al almacén - ACTUALIZAR con ajuste de inventario
-                    logger.info(`Actualizando inventario existente: ${itemCode} en almacén ${fracttalWarehouse}`);
-                    
-                    const adjustmentData = fracttal.prepareFracttalAdjustmentData(sageItem, fracttalWarehouse);
-                    await fracttal.updateInventoryAdjustment(itemCode, adjustmentData);
+                    // CASE A: Item exists + in warehouse → adjust stock
+                    logger.info(`Actualizando inventario: ${itemCode} en almacén ${fracttalWarehouse}`);
+
+                    await fracttal.adjustInventoryStock(itemCode, adjustmentData);
                     updatedItems++;
-                    
+
                 } else if (itemStatus.exists && !itemStatus.inWarehouse) {
-                    // El item existe pero no está asociado al almacén - CREAR ASOCIACIÓN
-                    logger.info(`Item ${itemCode} existe pero no está en almacén ${fracttalWarehouse} - creando asociación`);
-                    
-                    const createData = fracttal.prepareFracttalCreateData(sageItem, fracttalWarehouse);
-                    await fracttal.createInventoryItem(createData);
+                    // CASE B: Item exists but not in this warehouse → associate + adjust stock
+                    logger.info(`Asociando item ${itemCode} al almacén ${fracttalWarehouse}`);
+
+                    await fracttal.associateItemToWarehouse(itemCode, fracttalWarehouse, {
+                        stock: 0,
+                        unit_cost_stock: 0,
+                        min_stock_level: adjustmentData.min_stock_level,
+                        max_stock_level: adjustmentData.max_stock_level
+                    });
+                    await fracttal.adjustInventoryStock(itemCode, adjustmentData);
                     createdItems++;
-                    
+
                 } else {
-                    // El item no existe en Fracttal - CREAR NUEVO ITEM
-                    logger.info(`Creando nuevo item: ${itemCode} en almacén ${fracttalWarehouse}`);
-                    
-                    const createData = fracttal.prepareFracttalCreateData(sageItem, fracttalWarehouse);
-                    await fracttal.createInventoryItem(createData);
+                    // CASE C: Item doesn't exist → create with warehouse + adjust stock
+                    logger.info(`Creando item: ${itemCode} en almacén ${fracttalWarehouse}`);
+
+                    const createData = {
+                        code: itemCode,
+                        field_1: sageItem.Description?.trim() || itemCode,
+                        id_type_item: 4,
+                        code_warehouse: fracttalWarehouse,
+                        unit_code: 'UN',
+                        unit_description: 'Unidad',
+                        stock: 0,
+                        min_stock_level: adjustmentData.min_stock_level,
+                        max_stock_level: adjustmentData.max_stock_level,
+                        barcode: itemCode,
+                        notes: `Sincronizado desde Sage300 - ${new Date().toISOString()}`
+                    };
+                    await fracttal.createInventoryWithWarehouse(createData);
+                    await fracttal.adjustInventoryStock(itemCode, adjustmentData);
                     createdItems++;
                 }
 
                 processedItems++;
-                
+
                 // Log de progreso cada 100 items
                 if (processedItems % 100 === 0) {
                     logger.info(`Progreso: ${processedItems}/${sageItems.length} items procesados`);
@@ -108,7 +148,7 @@ async function syncInventory() {
             } catch (itemError) {
                 errors++;
                 logger.error(`Error procesando item ${sageItem.ItemNumber}:`, itemError.message);
-                
+
                 // No detener el proceso por errores individuales
                 continue;
             }
@@ -137,20 +177,27 @@ async function syncInventory() {
 
         logger.info('Proceso de sincronización de inventario completado exitosamente');
         return summary;
-        
+
     } catch (error) {
         logger.error('Error en la sincronización de inventario:', error);
         throw error;
     }
 }
 
-// Programar tarea para ejecutarse todos los días a las 2am
-cron.schedule(process.env.SYNC_CRON_SCHEDULE || '0 2 * * *', syncInventory);
+async function start() {
+    // LIC-01 + ENF-03: Startup license gate with retry + exit logic
+    await validateLicense({ startup: true });
+    // Programar tarea para ejecutarse todos los días a las 2am
+    cron.schedule(process.env.SYNC_CRON_SCHEDULE || '0 2 * * *', syncInventory);
+    if (require.main === module) {
+        syncInventory();
+    }
+}
+
+start().catch((err) => {
+    logger.error('Fatal startup error:', err);
+    process.exit(1);
+});
 
 // Exportar para uso manual si es necesario
 module.exports = { syncInventory };
-
-// Ejecución directa para desarrollo
-if (require.main === module) {
-    syncInventory();
-}

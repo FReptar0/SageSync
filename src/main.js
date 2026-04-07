@@ -2,6 +2,10 @@ const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
 
+// License gate -- must run before any service initialization
+const { validateEnv } = require('./utils/validateEnv');
+const { validate: validateLicense, isValid } = require('./services/LicenseValidator');
+
 // Configuración y servicios
 const config = require('./config/server');
 const logger = require('./config/logger');
@@ -14,84 +18,102 @@ const apiRoutes = require('./routes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { runSyncWithTracking } = require('./controllers/syncController');
 
-const app = express();
+// Validate environment variables first (exits on missing vars)
+validateEnv();
 
-// Middleware básico
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+let app;
 
-// Inicializar servicios
-const sage = new SageService();
-const fracttal = new FracttalClient();
-const syncStateManager = new SyncStateManager();
+async function startServer() {
+    // LIC-01 + ENF-03: Startup license gate with retry + exit logic
+    await validateLicense({ startup: true });
 
-// Hacer servicios disponibles globalmente en la app
-app.locals.sage = sage;
-app.locals.fracttal = fracttal;
-app.locals.syncStateManager = syncStateManager;
-app.locals.cronSchedule = config.syncSchedule;
+    app = express();
 
-// Programar sincronización automática
-console.log(`📅 Sincronización programada: ${config.syncSchedule}`);
-cron.schedule(config.syncSchedule, async () => {
-    try {
-        if (!syncStateManager.isInProgress()) {
-            console.log('\n🔄 Ejecutando sincronización programada...');
-            await runSyncWithTracking(syncStateManager);
-        } else {
-            logger.warn('Sincronización programada saltada - ya hay una en progreso');
-        }
-    } catch (error) {
-        logger.error('Error en sincronización programada:', error);
-    }
-});
+    // Middleware básico
+    app.use(express.json());
+    app.use(express.static(path.join(__dirname, '../public')));
 
-// Rutas principales
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+    // Inicializar servicios
+    const sage = new SageService();
+    const fracttal = new FracttalClient();
+    const syncStateManager = new SyncStateManager();
 
-// Montar rutas de la API
-app.use('/api', apiRoutes);
+    // Hacer servicios disponibles globalmente en la app
+    app.locals.sage = sage;
+    app.locals.fracttal = fracttal;
+    app.locals.syncStateManager = syncStateManager;
+    app.locals.cronSchedule = config.syncSchedule;
 
-// Middleware de manejo de errores (debe ir al final)
-app.use(errorHandler);
-
-// Iniciar servidor
-app.listen(config.port, () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('🚀 SageSync Server iniciado exitosamente!');
-    console.log(`📍 Dashboard disponible en: http://localhost:${config.port}`);
-    console.log(`📅 Sincronización programada: ${config.syncSchedule}`);
-    console.log('='.repeat(60));
-    
-    logger.info(`SageSync Server iniciado en puerto ${config.port}`);
-    
-    // Ejecutar sincronización inicial si está habilitada
-    if (config.syncOnStartup) {
-        console.log('\n🔄 Ejecutando sincronización inicial...');
-        setTimeout(async () => {
-            try {
-                await runSyncWithTracking(syncStateManager);
-            } catch (error) {
-                logger.error('Error en sincronización inicial:', error);
+    // Programar sincronización automática
+    console.log(`Sincronización programada: ${config.syncSchedule}`);
+    cron.schedule(config.syncSchedule, async () => {
+        try {
+            // LIC-02: Re-validate license on each cron cycle (periodic, no startup flag)
+            await validateLicense();
+            if (!isValid()) {
+                logger.error('License invalid — skipping scheduled sync');
+                return;
             }
-        }, 5000);
-    }
-});
+            if (!syncStateManager.isInProgress()) {
+                console.log('\nEjecutando sincronización programada...');
+                await runSyncWithTracking(syncStateManager);
+            } else {
+                logger.warn('Sincronización programada saltada - ya hay una en progreso');
+            }
+        } catch (error) {
+            logger.error('Error en sincronización programada:', error);
+        }
+    });
+
+    // Rutas principales
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, '../public/index.html'));
+    });
+
+    // Montar rutas de la API
+    app.use('/api', apiRoutes);
+
+    // Middleware de manejo de errores (debe ir al final)
+    app.use(errorHandler);
+
+    // Iniciar servidor
+    app.listen(config.port, () => {
+        console.log('\n' + '='.repeat(60));
+        console.log('SageSync Server iniciado exitosamente!');
+        console.log(`Dashboard disponible en: http://localhost:${config.port}`);
+        console.log(`Sincronización programada: ${config.syncSchedule}`);
+        console.log('='.repeat(60));
+
+        logger.info(`SageSync Server iniciado en puerto ${config.port}`);
+
+        // Ejecutar sincronización inicial si está habilitada
+        if (config.syncOnStartup) {
+            console.log('\nEjecutando sincronización inicial...');
+            setTimeout(async () => {
+                try {
+                    await runSyncWithTracking(syncStateManager);
+                } catch (error) {
+                    logger.error('Error en sincronización inicial:', error);
+                }
+            }, 5000);
+        }
+    });
+}
 
 // Manejo de cierre graceful
 const gracefulShutdown = (signal) => {
-    console.log(`\n👋 Cerrando SageSync Server (${signal})...`);
+    console.log(`\nCerrando SageSync Server (${signal})...`);
     logger.info(`SageSync Server cerrando por señal ${signal}`);
-    
-    // Aquí podrías agregar lógica adicional de limpieza
-    // como cerrar conexiones de base de datos, finalizar sincronizaciones, etc.
-    
     process.exit(0);
 };
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-module.exports = app;
+startServer().catch((err) => {
+    const log = require('./config/logger');
+    log.error('Fatal startup error:', err);
+    process.exit(1);
+});
+
+module.exports = { startServer };
