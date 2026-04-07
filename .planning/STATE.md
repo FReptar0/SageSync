@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: License Control System
-status: in-progress
-stopped_at: Completed 01-validator-core 01-01-PLAN.md
-last_updated: "2026-04-07T22:13:19.000Z"
-last_activity: 2026-04-07 — Completed Phase 1 Plan 01 (Validator Core)
+status: executing
+stopped_at: Completed 01-validator-core 01-02-PLAN.md
+last_updated: "2026-04-07T22:29:41.978Z"
+last_activity: 2026-04-07 — Completed 01-01 (license config, env validator, LicenseValidator service)
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 1
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
   percent: 25
 ---
 
@@ -46,6 +46,7 @@ Progress: [##░░░░░░░░] 25%
 | 01-validator-core | 1/2 | 3 min | 3 min |
 
 **Recent Trend:** 1 plan completed
+| Phase 01-validator-core P02 | 12 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -57,6 +58,8 @@ Progress: [##░░░░░░░░] 25%
 - 01-01: Removed sendLicenseAlert and nodemailer entirely — log warnings only per user decision
 - 01-01: validateEnv checks all three groups (license, database, fracttal) — fail-fast with complete error list
 - 01-01: LicenseValidator uses Winston logger singleton (not LogGenerator) — consistent with SageSync logging
+- [Phase 01-02]: axios.create() runs at module load time so jest.mock factory (not beforeEach assignment) required to control licenseClient in tests
+- [Phase 01-02]: Two-tier license gate established: startup (retry+exit) at boot, periodic (no exit) on each cron sync cycle
 
 ### Pending Todos
 
@@ -68,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-07T22:13:19.000Z
-Stopped at: Completed 01-validator-core 01-01-PLAN.md
-Resume file: .planning/phases/01-validator-core/01-02-PLAN.md
+Last session: 2026-04-07T22:29:41.976Z
+Stopped at: Completed 01-validator-core 01-02-PLAN.md
+Resume file: None
