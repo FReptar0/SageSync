@@ -48,28 +48,26 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Traceability
 
-(Updated during roadmap creation)
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LIC-01 | — | Pending |
-| LIC-02 | — | Pending |
-| LIC-03 | — | Pending |
-| LIC-04 | — | Pending |
-| ENF-01 | — | Pending |
-| ENF-02 | — | Pending |
-| ENF-03 | — | Pending |
-| ENF-04 | — | Pending |
-| STS-01 | — | Pending |
-| STS-02 | — | Pending |
-| CFG-01 | — | Pending |
-| CFG-02 | — | Pending |
+| CFG-01 | Phase 1 | Pending |
+| CFG-02 | Phase 1 | Pending |
+| LIC-01 | Phase 1 | Pending |
+| LIC-02 | Phase 1 | Pending |
+| LIC-03 | Phase 1 | Pending |
+| LIC-04 | Phase 1 | Pending |
+| ENF-03 | Phase 1 | Pending |
+| ENF-04 | Phase 1 | Pending |
+| ENF-01 | Phase 2 | Pending |
+| ENF-02 | Phase 2 | Pending |
+| STS-01 | Phase 2 | Pending |
+| STS-02 | Phase 2 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-07*
-*Last updated: 2026-04-07 after initial definition*
+*Last updated: 2026-04-07 — traceability filled after roadmap creation*
