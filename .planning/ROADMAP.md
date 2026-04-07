@@ -33,7 +33,11 @@ Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync
   3. A valid license response with a correct HMAC-SHA256 signature and fresh timestamp (under 5 minutes old) results in VALID state
   4. A network failure during validation transitions state to ERROR, and after 24h in ERROR state the app treats license as INVALID
   5. A license server hostname that resolves to a private or loopback IP triggers a logged warning (non-blocking)
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Config module, env validator, and LicenseValidator port from sageconnect
+- [ ] 01-02-PLAN.md — Unit tests for all 8 requirements and entry point wiring
 
 ### Phase 2: Enforcement Surface
 **Goal**: Every operational path in the app is gated by license state, and the current state is visible to operators
@@ -50,5 +54,5 @@ Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Validator Core | v1.1 | 0/? | Not started | - |
+| 1. Validator Core | v1.1 | 0/2 | Planned | - |
 | 2. Enforcement Surface | v1.1 | 0/? | Not started | - |
