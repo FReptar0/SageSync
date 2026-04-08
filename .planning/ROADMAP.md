@@ -18,8 +18,8 @@ Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync
 
 **Milestone Goal:** Tersoft can remotely control whether SageSync operates at any client site. A tampered or revoked license prevents the app from running.
 
-- [x] **Phase 1: Validator Core** - LicenseValidator service + config wiring + startup gate (plan 01 of 2 complete)
-- [ ] **Phase 2: Enforcement Surface** - Route middleware + cron guard + status endpoint + frontend banner
+- [x] **Phase 1: Validator Core** - LicenseValidator service + config wiring + startup gate (plan 02 of 2 complete)
+- [x] **Phase 2: Enforcement Surface** - Route middleware + cron guard + status endpoint (plan 01 complete, 02-02 frontend pending)
 
 ## Phase Details
 
@@ -51,7 +51,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — requireLicense middleware, status endpoint, cron log fix, and tests
+- [x] 02-01-PLAN.md — requireLicense middleware, status endpoint, cron log fix, and tests
 - [ ] 02-02-PLAN.md — Frontend license banner, overlay, expiry badge, and polling
 
 ## Progress
@@ -59,4 +59,4 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Validator Core | v1.1 | 2/2 | Complete | 2026-04-07 |
-| 2. Enforcement Surface | v1.1 | 0/2 | Not started | - |
+| 2. Enforcement Surface | v1.1 | 1/2 | In progress | - |

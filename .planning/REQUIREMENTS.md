@@ -16,14 +16,14 @@ Requirements for license control system. Each maps to roadmap phases.
 
 ### License Enforcement
 
-- [ ] **ENF-01**: All API routes except /api/system/license return 503 when license is invalid
-- [ ] **ENF-02**: Cron sync cycles are skipped when license is invalid
+- [x] **ENF-01**: All API routes except /api/system/license return 503 when license is invalid
+- [x] **ENF-02**: Cron sync cycles are skipped when license is invalid
 - [x] **ENF-03**: App exits with code 1 if license validation fails at startup after retries
 - [x] **ENF-04**: Three-state cache model (VALID/INVALID/ERROR) with 24h ERROR→INVALID TTL
 
 ### License Status
 
-- [ ] **STS-01**: GET /api/system/license endpoint returns current license state (always accessible)
+- [x] **STS-01**: GET /api/system/license endpoint returns current license state (always accessible)
 - [ ] **STS-02**: Frontend dashboard shows license status banner when invalid/expiring
 
 ### Configuration
@@ -58,9 +58,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | LIC-04 | Phase 1 | Complete |
 | ENF-03 | Phase 1 | Complete |
 | ENF-04 | Phase 1 | Complete |
-| ENF-01 | Phase 2 | Pending |
-| ENF-02 | Phase 2 | Pending |
-| STS-01 | Phase 2 | Pending |
+| ENF-01 | Phase 2 | Complete |
+| ENF-02 | Phase 2 | Complete |
+| STS-01 | Phase 2 | Complete |
 | STS-02 | Phase 2 | Pending |
 
 **Coverage:**
@@ -70,4 +70,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-04-07*
-*Last updated: 2026-04-07 — traceability filled after roadmap creation*
+*Last updated: 2026-04-08 — ENF-01, ENF-02, STS-01 marked complete after 02-01 execution*

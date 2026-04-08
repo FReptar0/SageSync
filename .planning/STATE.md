@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: License Control System
 status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-04-08T04:04:33.199Z"
-last_activity: 2026-04-07 — Completed 01-01 (license config, env validator, LicenseValidator service)
+last_updated: "2026-04-08T04:21:10Z"
+last_activity: 2026-04-08 — Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 2
-  completed_plans: 2
-  percent: 25
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-07)
 
 ## Current Position
 
-Phase: 1 of 2 (Validator Core)
-Plan: 1 of 2 complete (01-01 done, 01-02 next)
-Status: In progress
-Last activity: 2026-04-07 — Completed 01-01 (license config, env validator, LicenseValidator service)
+Phase: 2 of 2 (Enforcement Surface)
+Plan: 1 of 1 complete (02-01 done)
+Status: Phase 2 complete
+Last activity: 2026-04-08 — Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
 
-Progress: [##░░░░░░░░] 25%
+Progress: [#####░░░░░] 50%
 
 ## Performance Metrics
 
@@ -44,9 +44,11 @@ Progress: [##░░░░░░░░] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-validator-core | 1/2 | 3 min | 3 min |
+| 02-enforcement-surface | 1/1 | 3 min | 3 min |
 
-**Recent Trend:** 1 plan completed
+**Recent Trend:** 2 plans completed
 | Phase 01-validator-core P02 | 12 | 2 tasks | 4 files |
+| Phase 02-enforcement-surface P01 | 3 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -60,6 +62,8 @@ Progress: [##░░░░░░░░] 25%
 - 01-01: LicenseValidator uses Winston logger singleton (not LogGenerator) — consistent with SageSync logging
 - [Phase 01-02]: axios.create() runs at module load time so jest.mock factory (not beforeEach assignment) required to control licenseClient in tests
 - [Phase 01-02]: Two-tier license gate established: startup (retry+exit) at boot, periodic (no exit) on each cron sync cycle
+- [Phase 02-01]: requireLicense exemption in main.js wrapper (not inside middleware) — middleware stays single-responsibility
+- [Phase 02-01]: Integration tests mock src/app to prevent validateEnv() process.exit at module load (syncController dependency chain)
 
 ### Pending Todos
 
@@ -71,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T04:04:33.189Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-enforcement-surface/02-CONTEXT.md
+Last session: 2026-04-08T04:21:10Z
+Stopped at: Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
+Resume file: .planning/phases/02-enforcement-surface/02-01-SUMMARY.md
