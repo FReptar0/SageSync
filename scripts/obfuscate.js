@@ -60,6 +60,8 @@ const EXCLUDED = [
     '.sage-credentials',
     '.claude',
     '.agents',
+    '.planning',
+    'docs',
     'scripts/obfuscate.js',  // No incluir este script en la distribución
 ];
 
