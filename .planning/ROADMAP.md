@@ -2,19 +2,19 @@
 
 ## Milestones
 
-- ✅ **v1.0 Core Sync Engine** - Pre-GSD (shipped, phases not tracked)
-- 🚧 **v1.1 License Control System** - Phases 1-2 (in progress)
+- v1.0 Core Sync Engine - Pre-GSD (shipped, phases not tracked)
+- v1.1 License Control System - Phases 1-2 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 Core Sync Engine — SHIPPED (pre-GSD, phases not tracked)</summary>
+<summary>v1.0 Core Sync Engine — SHIPPED (pre-GSD, phases not tracked)</summary>
 
 Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync, Express dashboard, warehouse auto-creation, Windows service support, code obfuscation GitHub Action.
 
 </details>
 
-### 🚧 v1.1 License Control System (In Progress)
+### v1.1 License Control System (In Progress)
 
 **Milestone Goal:** Tersoft can remotely control whether SageSync operates at any client site. A tampered or revoked license prevents the app from running.
 
@@ -37,7 +37,7 @@ Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync
 
 Plans:
 - [x] 01-01-PLAN.md — Config module, env validator, and LicenseValidator port from sageconnect
-- [ ] 01-02-PLAN.md — Unit tests for all 8 requirements and entry point wiring
+- [x] 01-02-PLAN.md — Unit tests for all 8 requirements and entry point wiring
 
 ### Phase 2: Enforcement Surface
 **Goal**: Every operational path in the app is gated by license state, and the current state is visible to operators
@@ -48,11 +48,15 @@ Plans:
   2. Cron sync cycles are silently skipped and a warning is logged when license is not VALID
   3. GET /api/system/license returns a JSON object with current state, active flag, expiresAt, and lastChecked — always, regardless of license state
   4. The web dashboard displays a visible banner when license state is INVALID or a license is expiring
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — requireLicense middleware, status endpoint, cron log fix, and tests
+- [ ] 02-02-PLAN.md — Frontend license banner, overlay, expiry badge, and polling
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Validator Core | 2/2 | Complete   | 2026-04-07 | - |
-| 2. Enforcement Surface | v1.1 | 0/? | Not started | - |
+| 1. Validator Core | v1.1 | 2/2 | Complete | 2026-04-07 |
+| 2. Enforcement Surface | v1.1 | 0/2 | Not started | - |
