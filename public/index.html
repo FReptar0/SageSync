@@ -649,6 +649,39 @@
             border-radius: var(--radius-md);
             border: 2px dashed var(--border-color);
         }
+
+        /* License enforcement banner */
+        #license-banner {
+            background: var(--accent-error);
+            color: #fff;
+            text-align: center;
+            padding: 14px 24px;
+            font-weight: 700;
+            font-size: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            letter-spacing: 0.3px;
+        }
+
+        /* Full-page overlay — blocks interaction when license is INVALID */
+        #license-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1049;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Expiry countdown badge in header */
+        #license-expiry-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -1376,10 +1409,74 @@
             }
         }
         
+        // --- License Status Polling (STS-02) ---
+        async function checkLicenseStatus() {
+            try {
+                var res = await fetch('/api/system/license', { headers: { 'Accept': 'application/json' } });
+                var json = await res.json();
+                if (!json.state) return;
+
+                var state = json.state;
+                var expiresAt = json.expiresAt;
+
+                // --- INVALID/ERROR banner + blocking overlay ---
+                var banner = document.getElementById('license-banner');
+                var overlay = document.getElementById('license-overlay');
+
+                if (state === 'INVALID' || state === 'ERROR') {
+                    if (!banner) {
+                        document.body.insertAdjacentHTML('afterbegin',
+                            '<div id="license-banner">' +
+                            'Licencia inactiva. Contacte a su proveedor. [' + state + ']' +
+                            '</div>'
+                        );
+                    }
+                    if (!overlay) {
+                        document.body.insertAdjacentHTML('afterbegin',
+                            '<div id="license-overlay"></div>'
+                        );
+                        // Move banner above overlay (re-insert after overlay)
+                        var b = document.getElementById('license-banner');
+                        if (b) document.body.insertAdjacentElement('afterbegin', b);
+                    }
+                } else {
+                    if (banner) banner.remove();
+                    if (overlay) overlay.remove();
+                }
+
+                // --- Expiry countdown badge ---
+                var existingBadge = document.getElementById('license-expiry-badge');
+                if (existingBadge) existingBadge.remove();
+
+                if (expiresAt && state === 'VALID') {
+                    var days = Math.ceil((new Date(expiresAt) - Date.now()) / 86400000);
+                    if (days <= 30) {
+                        var color = days <= 7 ? 'var(--accent-error)' : 'var(--accent-warning)';
+                        var textColor = days <= 7 ? '#fff' : '#000';
+                        var dayLabel = days === 1 ? 'dia' : 'dias';
+                        var headerEl = document.querySelector('.header');
+                        if (headerEl) {
+                            headerEl.insertAdjacentHTML('beforeend',
+                                '<div id="license-expiry-badge" style="background:' + color + '; color:' + textColor + ';">' +
+                                'Licencia expira en ' + days + ' ' + dayLabel +
+                                '</div>'
+                            );
+                        }
+                    }
+                }
+            } catch (err) {
+                // Silent — license UI polling is non-critical
+            }
+        }
+
         // Inicializar dashboard
         document.addEventListener('DOMContentLoaded', function() {
             fetchStatus();
             fetchInventoryStats();
+
+            // License status polling (STS-02)
+            checkLicenseStatus();
+            setInterval(checkLicenseStatus, 60000);
             
             // Inicializar logs con tab por defecto
             fetchLogs();
