@@ -25,7 +25,9 @@
     "install-service": "node src/service-installer.js install",
     "uninstall-service": "node src/service-installer.js uninstall",
     "obfuscate": "node scripts/obfuscate.js",
-    "obfuscate:push": "node scripts/obfuscate.js --push"
+    "obfuscate:push": "node scripts/obfuscate.js --push",
+    "setup": "node scripts/setup-automap.js",
+    "setup:dry-run": "node scripts/setup-automap.js --dry-run"
   },
   "dependencies": {
     "axios": "^1.6.0",
