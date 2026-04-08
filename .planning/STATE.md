@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: License Control System
 status: completed
-stopped_at: "Checkpoint: Task 2 of 02-02 (human-verify license enforcement surface)"
-last_updated: "2026-04-08T04:26:03.588Z"
+stopped_at: Completed 02-02 — license enforcement surface complete (v1.1 milestone done)
+last_updated: "2026-04-08T04:28:53.257Z"
 last_activity: 2026-04-08 — Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
 progress:
   total_phases: 2
@@ -50,6 +50,7 @@ Progress: [#####░░░░░] 50%
 | Phase 01-validator-core P02 | 12 | 2 tasks | 4 files |
 | Phase 02-enforcement-surface P01 | 3 min | 2 tasks | 5 files |
 | Phase 02-enforcement-surface P02 | 5 | 1 tasks | 1 files |
+| Phase 02-enforcement-surface P02 | 5 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,7 @@ Progress: [#####░░░░░] 50%
 - [Phase 02-01]: Integration tests mock src/app to prevent validateEnv() process.exit at module load (syncController dependency chain)
 - [Phase 02-02]: Banner z-index 1050 sits above overlay z-index 1049 — banner stays visible even when overlay is active
 - [Phase 02-02]: Expiry badge only renders for VALID state within 30 days — avoids badge on INVALID/ERROR states
+- [Phase 02-enforcement-surface]: User approved frontend license enforcement surface: banner, overlay, expiry badge, and 60s polling verified in browser
 
 ### Pending Todos
 
@@ -78,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T04:26:03.585Z
-Stopped at: Checkpoint: Task 2 of 02-02 (human-verify license enforcement surface)
+Last session: 2026-04-08T04:28:53.253Z
+Stopped at: Completed 02-02 — license enforcement surface complete (v1.1 milestone done)
 Resume file: None
