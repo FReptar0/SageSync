@@ -31,6 +31,16 @@ async function startServer() {
 
     // Middleware básico
     app.use(express.json());
+
+    // ENF-01: License enforcement — block all requests when license invalid
+    // Mounted BEFORE express.static so that static HTML serving is also gated
+    // Exempt /api/system/license so the status endpoint is always accessible
+    const { requireLicense } = require('./middleware/requireLicense');
+    app.use((req, res, next) => {
+        if (req.path === '/api/system/license') return next();
+        requireLicense(req, res, next);
+    });
+
     app.use(express.static(path.join(__dirname, '../public')));
 
     // Inicializar servicios
@@ -51,7 +61,7 @@ async function startServer() {
             // LIC-02: Re-validate license on each cron cycle (periodic, no startup flag)
             await validateLicense();
             if (!isValid()) {
-                logger.error('License invalid — skipping scheduled sync');
+                logger.warn('License invalid — skipping scheduled sync');
                 return;
             }
             if (!syncStateManager.isInProgress()) {
