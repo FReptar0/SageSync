@@ -48,7 +48,7 @@ Plans:
   2. Cron sync cycles are silently skipped and a warning is logged when license is not VALID
   3. GET /api/system/license returns a JSON object with current state, active flag, expiresAt, and lastChecked — always, regardless of license state
   4. The web dashboard displays a visible banner when license state is INVALID or a license is expiring
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — requireLicense middleware, status endpoint, cron log fix, and tests
@@ -59,4 +59,4 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Validator Core | v1.1 | 2/2 | Complete | 2026-04-07 |
-| 2. Enforcement Surface | v1.1 | 1/2 | In progress | - |
+| 2. Enforcement Surface | 2/2 | Complete   | 2026-04-08 | - |

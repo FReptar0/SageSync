@@ -24,7 +24,7 @@ Requirements for license control system. Each maps to roadmap phases.
 ### License Status
 
 - [x] **STS-01**: GET /api/system/license endpoint returns current license state (always accessible)
-- [ ] **STS-02**: Frontend dashboard shows license status banner when invalid/expiring
+- [x] **STS-02**: Frontend dashboard shows license status banner when invalid/expiring
 
 ### Configuration
 
@@ -61,7 +61,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ENF-01 | Phase 2 | Complete |
 | ENF-02 | Phase 2 | Complete |
 | STS-01 | Phase 2 | Complete |
-| STS-02 | Phase 2 | Pending |
+| STS-02 | Phase 2 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 12 total
