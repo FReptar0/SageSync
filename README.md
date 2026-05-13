@@ -4,6 +4,18 @@
 
 Sistema de sincronización automática de inventario entre Sage300 y Fracttal para gestión eficiente de almacenes.
 
+## 📦 Handoff
+
+Este proyecto fue traspasado a un nuevo responsable el **2026-05-12**. Si llegas frío al repo, **empieza por [`HANDOFF.md`](./HANDOFF.md)** — incluye estado actual, arquitectura, despliegue, sistema de licencias, runbook, decisiones históricas, FAQ y los contactos/accesos que necesitas pedir antes de operar.
+
+Documentos relacionados:
+
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — mapa del código (en inglés, junto a la implementación).
+- [`RUNBOOK.md`](./RUNBOOK.md) — procedimientos operativos (verificar salud, sync de emergencia, rotar tokens, troubleshooting).
+- [`docs/MEMORY.md`](./docs/MEMORY.md) — memoria histórica del proyecto: decisiones, descubrimientos de la API de Fracttal, gotchas resueltos.
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — guía de despliegue paso a paso a servidor cliente.
+- [`CLAUDE.md`](./CLAUDE.md) — instrucciones para Claude Code (memoria de proyecto + comandos y subagents).
+
 ## 🚀 Características Principales
 
 - **Sincronización Automatizada**: Sincronización programada vía cron jobs
