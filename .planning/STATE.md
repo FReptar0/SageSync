@@ -83,3 +83,15 @@ None yet.
 Last session: 2026-04-08T04:28:53.253Z
 Stopped at: Completed 02-02 — license enforcement surface complete (v1.1 milestone done)
 Resume file: None
+
+## Handoff prepared on 2026-05-12
+
+The original owner (Fernando Rodriguez Memije, fmemije00@gmail.com) handed the project off to a new responsible engineer on 2026-05-12. The complete handoff package was assembled on branch `chore/handoff-prep-2026-05`:
+
+- `HANDOFF.md` — entry-point doc for the new owner (Spanish, 17 sections covering state, architecture, deployment, license system, ops, history, FAQ).
+- `ARCHITECTURE.md` — code-facing architecture reference (English, mirrors src/ layout with data flow, lifecycles, integrations, edge cases).
+- `RUNBOOK.md` — production operations runbook (Spanish, recipes for health checks, manual sync, token rotation, troubleshooting, install/uninstall).
+- `docs/MEMORY.md` — curated historical context migrated from .claude/session-memory.md plus decisions and gotchas extracted from .planning/ artifacts.
+- `CLAUDE.md` + `.claude/settings.json` + `.claude/agents/` + `.claude/commands/` — Claude Code best-practice integration (3 custom subagents, 4 project slash commands, permission allowlist with deny for `.env`/`.fracttal-token`/`*.pem`).
+
+No source code under `src/` was modified during handoff prep. No active milestone is in flight; the project is in maintenance mode pending the next owner's direction.
