@@ -3,6 +3,12 @@ const logger = require('../config/logger');
 const ConfigManager = require('../config/configManager');
 require('dotenv').config();
 
+// URL-encode any value that goes into a path segment. Defensive against
+// item codes / warehouse codes that contain spaces, slashes, or unicode —
+// surfaced during sandbox validation where codes like "Capstone Gold" 404'd
+// because the space wasn't encoded.
+const encPath = (v) => encodeURIComponent(String(v));
+
 class FracttalClient {
     constructor() {
         this.baseURL = process.env.FRACTTAL_BASE_URL || 'https://app.fracttal.com/api';
@@ -299,7 +305,7 @@ class FracttalClient {
         try {
             console.log(`🔍 Consultando almacén con código: ${code}`);
             logger.info(`Consultando almacén con código: ${code}`);
-            const response = await this.client.get(`/warehouses/${code}`, { params });
+            const response = await this.client.get(`/warehouses/${encPath(code)}`, { params });
             console.log(`✅ Almacén ${code} encontrado`);
             return response.data;
         } catch (error) {
@@ -328,7 +334,7 @@ class FracttalClient {
     async getInventoryByCode(code) {
         try {
             logger.info(`Consultando item con código: ${code}`);
-            const response = await this.client.get(`/items/${code}`);
+            const response = await this.client.get(`/items/${encPath(code)}`);
             return response.data;
         } catch (error) {
             logger.error('Error consultando item:', error.response?.data || error.message);
@@ -386,7 +392,7 @@ class FracttalClient {
             }
             
             // Nota: Según documentación, enviar solo los parámetros que se desean actualizar
-            const response = await this.client.put(`/items/${itemCode}`, itemData);
+            const response = await this.client.put(`/items/${encPath(itemCode)}`, itemData);
             logger.info(`Item ${itemCode} actualizado exitosamente`);
             return response.data;
         } catch (error) {
@@ -473,7 +479,7 @@ class FracttalClient {
         try {
             logger.info(`Ajustando inventario de ${itemCode} en almacén ${warehouseData.code_warehouse || warehouseData.id_warehouse}`);
 
-            const response = await this.client.put(`/inventories_adjustment/${itemCode}`, warehouseData);
+            const response = await this.client.put(`/inventories_adjustment/${encPath(itemCode)}`, warehouseData);
             logger.info(`Inventario de ${itemCode} ajustado exitosamente`);
             return response.data;
         } catch (error) {
@@ -502,7 +508,7 @@ class FracttalClient {
     async getItemInventory(itemCode) {
         try {
             logger.info(`Consultando inventario del item ${itemCode}`);
-            const response = await this.client.get(`/inventories/${itemCode}`);
+            const response = await this.client.get(`/inventories/${encPath(itemCode)}`);
             return response.data;
         } catch (error) {
             logger.error('Error consultando inventario del item:', error.response?.data || error.message);
@@ -520,7 +526,7 @@ class FracttalClient {
                 throw new Error('Faltan campos requeridos: movement_type, document, code_user, items');
             }
 
-            const response = await this.client.post(`/warehouse_entries_orders/${warehouseCode}`, entryData);
+            const response = await this.client.post(`/warehouse_entries_orders/${encPath(warehouseCode)}`, entryData);
             logger.info(`Entrada al almacén ${warehouseCode} creada exitosamente`);
             return response.data;
         } catch (error) {

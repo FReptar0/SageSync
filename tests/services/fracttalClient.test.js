@@ -297,4 +297,63 @@ describe('FracttalClient', () => {
       });
     });
   });
+
+  // Surfaced during sandbox validation pre-push: item "Capstone Gold" 404'd
+  // because the space wasn't encoded. All path-segment methods now use
+  // encodeURIComponent defensively.
+  describe('URL encoding for path segments', () => {
+    it('encodes spaces in item code for getInventoryByCode', async () => {
+      fracttalClient.client.get.mockResolvedValueOnce({ data: { success: true, data: [] } });
+      await fracttalClient.getInventoryByCode('Capstone Gold');
+      expect(fracttalClient.client.get).toHaveBeenCalledWith('/items/Capstone%20Gold');
+    });
+
+    it('encodes spaces in item code for adjustInventoryStock', async () => {
+      fracttalClient.client.put.mockResolvedValueOnce({ data: { success: true } });
+      await fracttalClient.adjustInventoryStock('Capstone Gold', { code_warehouse: 'ALM-AMP', stock: 10 });
+      expect(fracttalClient.client.put).toHaveBeenCalledWith('/inventories_adjustment/Capstone%20Gold', expect.any(Object));
+    });
+
+    it('encodes spaces in item code for getItemInventory', async () => {
+      fracttalClient.client.get.mockResolvedValueOnce({ data: { success: true } });
+      await fracttalClient.getItemInventory('Capstone Gold');
+      expect(fracttalClient.client.get).toHaveBeenCalledWith('/inventories/Capstone%20Gold');
+    });
+
+    it('encodes spaces in item code for updateInventoryItem', async () => {
+      fracttalClient.client.put.mockResolvedValueOnce({ data: { success: true } });
+      await fracttalClient.updateInventoryItem('Capstone Gold', { id_type_item: 4 });
+      expect(fracttalClient.client.put).toHaveBeenCalledWith('/items/Capstone%20Gold', expect.any(Object));
+    });
+
+    it('encodes slashes in warehouse code for getWarehouseByCode', async () => {
+      fracttalClient.client.get.mockResolvedValueOnce({ data: { success: true, data: { code: 'A/B' } } });
+      await fracttalClient.getWarehouseByCode('A/B');
+      expect(fracttalClient.client.get).toHaveBeenCalledWith('/warehouses/A%2FB', { params: {} });
+    });
+
+    it('encodes warehouse code for createWarehouseEntry', async () => {
+      fracttalClient.client.post.mockResolvedValueOnce({ data: { success: true } });
+      await fracttalClient.createWarehouseEntry('WH ONE', {
+        movement_type: 1,
+        document: 'D1',
+        code_user: 'u',
+        items: []
+      });
+      expect(fracttalClient.client.post).toHaveBeenCalledWith('/warehouse_entries_orders/WH%20ONE', expect.any(Object));
+    });
+
+    it('leaves plain alphanumeric codes unchanged', async () => {
+      fracttalClient.client.get.mockResolvedValueOnce({ data: { success: true, data: [] } });
+      await fracttalClient.getInventoryByCode('ITEM001');
+      expect(fracttalClient.client.get).toHaveBeenCalledWith('/items/ITEM001');
+    });
+
+    it('encodes unicode characters', async () => {
+      fracttalClient.client.get.mockResolvedValueOnce({ data: { success: true, data: [] } });
+      await fracttalClient.getInventoryByCode('REPUESTO-ÑU');
+      // 'Ñ' → %C3%91; 'U' is plain ASCII
+      expect(fracttalClient.client.get).toHaveBeenCalledWith('/items/REPUESTO-%C3%91U');
+    });
+  });
 });
