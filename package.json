@@ -9,6 +9,7 @@
     "dev": "nodemon src/main.js",
     "dev-sync": "nodemon src/app.js",
     "sync": "node src/sync.js",
+    "sync:preview": "node src/sync.js --dry-run",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
