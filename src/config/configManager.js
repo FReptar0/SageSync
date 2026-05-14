@@ -46,6 +46,22 @@ class ConfigManager {
         return this.config.warehouseCreationSettings;
     }
 
+    // Filtros del query de inventario (familia, exclusión de segmentos).
+    // Si no hay configuración, devuelve filtros vacíos (sync trae todo).
+    getInventoryFilters() {
+        const filters = this.config.inventoryFilters || {};
+        return {
+            itemBracketId: typeof filters.itemBracketId === 'string' && filters.itemBracketId.trim() !== ''
+                ? filters.itemBracketId.trim()
+                : null,
+            segment1Excluded: Array.isArray(filters.segment1Excluded)
+                ? filters.segment1Excluded
+                    .filter(s => typeof s === 'string' && s.trim() !== '')
+                    .map(s => s.trim())
+                : []
+        };
+    }
+
     // Manejo de token
     saveToken(tokenData) {
         try {
