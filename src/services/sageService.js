@@ -5,9 +5,52 @@ const ConfigManager = require('../config/configManager');
 class SageService {
     constructor() {
         this.configManager = new ConfigManager();
-        this.inventoryQuery = `
+    }
+
+    /**
+     * Construye el SELECT de inventario.
+     * @param {Object} opts
+     * @param {boolean} [opts.applyFilters=false] — si true, aplica inventoryFilters de config.json (familia + exclusión de segmentos). El path de sync usa true; el dashboard usa false.
+     * @param {Array<{sql: string, name?: string, value?: any}>} [opts.extraWhere=[]] — condiciones adicionales para componer (ej. filtro por código/ubicación). Si name/value se proveen, se pasan como parámetros mssql.
+     * @returns {{ query: string, parameters: Object }}
+     */
+    _buildInventoryQuery(opts = {}) {
+        const { applyFilters = false, extraWhere = [] } = opts;
+
+        const conditions = [
+            'I.INACTIVE = 0',
+            'I.STOCKITEM = 1',
+            "B.LOCATION = 'GRAL'"
+        ];
+        const parameters = {};
+
+        if (applyFilters) {
+            const filters = this.configManager.getInventoryFilters();
+            if (filters.itemBracketId) {
+                conditions.push('I.ITEMBRKID = @itemBracketId');
+                parameters.itemBracketId = filters.itemBracketId;
+            }
+            if (filters.segment1Excluded.length > 0) {
+                const placeholders = filters.segment1Excluded
+                    .map((_, idx) => `@seg1Excl${idx}`);
+                conditions.push(`I.SEGMENT1 NOT IN (${placeholders.join(', ')})`);
+                filters.segment1Excluded.forEach((value, idx) => {
+                    parameters[`seg1Excl${idx}`] = value;
+                });
+            }
+        }
+
+        for (const w of extraWhere) {
+            if (!w || !w.sql) continue;
+            conditions.push(w.sql);
+            if (w.name !== undefined && w.value !== undefined) {
+                parameters[w.name] = w.value;
+            }
+        }
+
+        const query = `
             SELECT
-                B.ITEMNO        AS ItemNumber,
+                I.FMTITEMNO     AS ItemNumber,
                 I.[DESC]        AS Description,
                 B.LOCATION      AS Location,
                 ISNULL(B.QTYONHAND-B.QTYCOMMIT-B.QTYSHNOCST+B.QTYRENOCST+B.QTYADNOCST,0) AS QuantityOnHand,
@@ -18,17 +61,18 @@ class SageService {
             FROM COPDAT.dbo.ICILOC AS B
             JOIN COPDAT.dbo.ICITEM AS I
                 ON B.ITEMNO = I.ITEMNO
-            WHERE I.INACTIVE = 0
-                AND I.STOCKITEM = 1
-                AND B.LOCATION = 'GRAL'
+            WHERE ${conditions.join('\n                AND ')}
             ORDER BY B.ITEMNO, B.LOCATION
         `;
+
+        return { query, parameters };
     }
 
     async getAllInventoryItems() {
         try {
-            logger.info('Obteniendo todos los items de inventario desde Sage300...');
-            const result = await database.query(this.inventoryQuery);
+            const { query, parameters } = this._buildInventoryQuery({ applyFilters: true });
+            logger.info('Obteniendo todos los items de inventario desde Sage300 (con filtros de familia)...');
+            const result = await database.query(query, parameters);
             logger.info(`Se obtuvieron ${result.recordset.length} items de inventario`);
             return result.recordset;
         } catch (error) {
@@ -40,8 +84,12 @@ class SageService {
     async getInventoryItemsByLocation(location) {
         try {
             logger.info(`Obteniendo items de inventario para ubicación: ${location}`);
-            const query = this.inventoryQuery + ' AND B.LOCATION = @location';
-            const result = await database.query(query, { location });
+            // El dashboard browsea todo el inventario — no aplicamos inventoryFilters.
+            const { query, parameters } = this._buildInventoryQuery({
+                applyFilters: false,
+                extraWhere: [{ sql: 'B.LOCATION = @location', name: 'location', value: location }]
+            });
+            const result = await database.query(query, parameters);
             logger.info(`Se obtuvieron ${result.recordset.length} items para la ubicación ${location}`);
             return result.recordset;
         } catch (error) {
@@ -52,14 +100,15 @@ class SageService {
 
     async getInventoryItemByCode(itemNumber, location = null) {
         try {
-            let query = this.inventoryQuery + ' AND B.ITEMNO = @itemNumber';
-            let parameters = { itemNumber };
-            
+            // El dashboard busca por código formateado (FMTITEMNO) — sin filtros de familia.
+            const extraWhere = [{ sql: 'I.FMTITEMNO = @itemNumber', name: 'itemNumber', value: itemNumber }];
             if (location) {
-                query += ' AND B.LOCATION = @location';
-                parameters.location = location;
+                extraWhere.push({ sql: 'B.LOCATION = @location', name: 'location', value: location });
             }
-
+            const { query, parameters } = this._buildInventoryQuery({
+                applyFilters: false,
+                extraWhere
+            });
             const result = await database.query(query, parameters);
             return result.recordset.length > 0 ? result.recordset[0] : null;
         } catch (error) {
