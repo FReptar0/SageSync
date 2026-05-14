@@ -2,61 +2,41 @@
 
 ## Milestones
 
-- v1.0 Core Sync Engine - Pre-GSD (shipped, phases not tracked)
-- v1.1 License Control System - Phases 1-2 (in progress)
+- ✅ **v1.0 Core Sync Engine** — Pre-GSD (shipped, phases not tracked)
+- ✅ **v1.1 License Control System** — Phases 1–2 (shipped 2026-04-08) — see [`milestones/v1.1-ROADMAP.md`](./milestones/v1.1-ROADMAP.md)
+- 📋 **v1.2** — Not yet scoped (run `/gsd-new-milestone` to start)
 
 ## Phases
 
 <details>
-<summary>v1.0 Core Sync Engine — SHIPPED (pre-GSD, phases not tracked)</summary>
+<summary>✅ v1.0 Core Sync Engine — SHIPPED (pre-GSD, phases not tracked)</summary>
 
 Shipped with: MSSQL inventory reader, Fracttal API client with OAuth2, cron sync, Express dashboard, warehouse auto-creation, Windows service support, code obfuscation GitHub Action.
 
 </details>
 
-### v1.1 License Control System (In Progress)
+<details>
+<summary>✅ v1.1 License Control System (Phases 1–2) — SHIPPED 2026-04-08</summary>
 
-**Milestone Goal:** Tersoft can remotely control whether SageSync operates at any client site. A tampered or revoked license prevents the app from running.
+- [x] Phase 1: Validator Core (2/2 plans) — completed 2026-04-07
+- [x] Phase 2: Enforcement Surface (2/2 plans) — completed 2026-04-08
 
-- [x] **Phase 1: Validator Core** - LicenseValidator service + config wiring + startup gate (plan 02 of 2 complete)
-- [x] **Phase 2: Enforcement Surface** - Route middleware + cron guard + status endpoint (plan 01 complete, 02-02 frontend pending)
+Full archive: [`milestones/v1.1-ROADMAP.md`](./milestones/v1.1-ROADMAP.md)
+Requirements archive: [`milestones/v1.1-REQUIREMENTS.md`](./milestones/v1.1-REQUIREMENTS.md)
 
-## Phase Details
+</details>
 
-### Phase 1: Validator Core
-**Goal**: The app validates its license on startup and refuses to start if the license cannot be confirmed
-**Depends on**: Nothing (first GSD phase)
-**Requirements**: CFG-01, CFG-02, LIC-01, LIC-02, LIC-03, LIC-04, ENF-03, ENF-04
-**Success Criteria** (what must be TRUE):
-  1. App reads LICENSE_API_URL, HMAC_SECRET, and SAGESYNC_API_KEY from environment and passes them to the validator
-  2. App exits with code 1 on startup when license validation fails after 3 retries with exponential backoff
-  3. A valid license response with a correct HMAC-SHA256 signature and fresh timestamp (under 5 minutes old) results in VALID state
-  4. A network failure during validation transitions state to ERROR, and after 24h in ERROR state the app treats license as INVALID
-  5. A license server hostname that resolves to a private or loopback IP triggers a logged warning (non-blocking)
-**Plans:** 2/2 plans complete
+### 📋 v1.2 (Not yet scoped)
 
-Plans:
-- [x] 01-01-PLAN.md — Config module, env validator, and LicenseValidator port from sageconnect
-- [x] 01-02-PLAN.md — Unit tests for all 8 requirements and entry point wiring
+Run `/gsd-new-milestone` to define goals, requirements, and phases. Candidate themes carried over from v1.1 close (`PROJECT.md` § Next Milestone Goals):
 
-### Phase 2: Enforcement Surface
-**Goal**: Every operational path in the app is gated by license state, and the current state is visible to operators
-**Depends on**: Phase 1
-**Requirements**: ENF-01, ENF-02, STS-01, STS-02
-**Success Criteria** (what must be TRUE):
-  1. Any API request (except GET /api/system/license) returns HTTP 503 when license state is INVALID or ERROR-past-TTL
-  2. Cron sync cycles are silently skipped and a warning is logged when license is not VALID
-  3. GET /api/system/license returns a JSON object with current state, active flag, expiresAt, and lastChecked — always, regardless of license state
-  4. The web dashboard displays a visible banner when license state is INVALID or a license is expiring
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 02-01-PLAN.md — requireLicense middleware, status endpoint, cron log fix, and tests
-- [ ] 02-02-PLAN.md — Frontend license banner, overlay, expiry badge, and polling
+- Pay down deferred test (`fracttalClient.test.js` `updateWarehouseItem`) and audit deprecated FracttalClient methods for removal.
+- Reduce Spanish/English language drift across the codebase and document the convention more visibly.
+- Operational hardening surfaced during handoff (RUNBOOK gaps, deployment-checklist gaps).
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Validator Core | v1.1 | 2/2 | Complete | 2026-04-07 |
-| 2. Enforcement Surface | 2/2 | Complete   | 2026-04-08 | - |
+| 1. Validator Core | v1.1 | 2/2 | ✅ Complete | 2026-04-07 |
+| 2. Enforcement Surface | v1.1 | 2/2 | ✅ Complete | 2026-04-08 |

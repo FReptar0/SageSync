@@ -1,97 +1,65 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: License Control System
-status: completed
-stopped_at: Completed 02-02 — license enforcement surface complete (v1.1 milestone done)
-last_updated: "2026-04-08T04:34:04.161Z"
-last_activity: 2026-04-08 — Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
+milestone: null
+milestone_name: null
+status: between-milestones
+stopped_at: v1.1 archived 2026-05-14 — ready to scope v1.2 with /gsd-new-milestone
+last_updated: "2026-05-14T16:55:00.000Z"
+last_activity: 2026-05-14 — Archived v1.1 License Control System (full milestone close, tag v1.1)
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 50
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-07)
+See: .planning/PROJECT.md (updated 2026-05-14)
 
-**Core value:** Sage300 inventory data stays in sync with Fracttal automatically
-**Current focus:** v1.1 — License Control System (Phase 1: Validator Core)
+**Core value:** Sage300 inventory data stays in sync with Fracttal automatically, only while the client's deployment holds a valid Tersoft-issued license.
+**Current focus:** Between milestones — v1.1 archived, v1.2 not yet scoped.
 
 ## Current Position
 
-Phase: 2 of 2 (Enforcement Surface)
-Plan: 1 of 1 complete (02-01 done)
-Status: Phase 2 complete
-Last activity: 2026-04-08 — Completed 02-01 (requireLicense middleware, license status route, main.js enforcement)
+No active milestone. Run `/gsd-new-milestone` to scope v1.2 (or `/gsd-explore` for socratic ideation first).
 
-Progress: [#####░░░░░] 50%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 1
-- Average duration: 3 min
-- Total execution time: 3 min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-validator-core | 1/2 | 3 min | 3 min |
-| 02-enforcement-surface | 1/1 | 3 min | 3 min |
-
-**Recent Trend:** 2 plans completed
-| Phase 01-validator-core P02 | 12 | 2 tasks | 4 files |
-| Phase 02-enforcement-surface P01 | 3 min | 2 tasks | 5 files |
-| Phase 02-enforcement-surface P02 | 5 | 1 tasks | 1 files |
-| Phase 02-enforcement-surface P02 | 5 | 2 tasks | 1 files |
+Last shipped milestone: v1.1 License Control System (2026-04-08, 2 phases, 4 plans, 12 requirements, tag `v1.1`).
 
 ## Accumulated Context
 
-### Decisions
+### Decisions (carried forward — most important)
 
-- v1.1 init: Port LicenseValidator from SageConnect — reference implementation at sageconnect/src/services/LicenseValidator.js, adapt for SageSync config shape and remove email alert logic
-- v1.1 init: License server reuse — sageconnect-license.vercel.app, just need a new client key for SageSync
-- v1.1 init: No email alerts — log warnings only (user opted out)
-- 01-01: Removed sendLicenseAlert and nodemailer entirely — log warnings only per user decision
-- 01-01: validateEnv checks all three groups (license, database, fracttal) — fail-fast with complete error list
-- 01-01: LicenseValidator uses Winston logger singleton (not LogGenerator) — consistent with SageSync logging
-- [Phase 01-02]: axios.create() runs at module load time so jest.mock factory (not beforeEach assignment) required to control licenseClient in tests
-- [Phase 01-02]: Two-tier license gate established: startup (retry+exit) at boot, periodic (no exit) on each cron sync cycle
-- [Phase 02-01]: requireLicense exemption in main.js wrapper (not inside middleware) — middleware stays single-responsibility
-- [Phase 02-01]: Integration tests mock src/app to prevent validateEnv() process.exit at module load (syncController dependency chain)
-- [Phase 02-02]: Banner z-index 1050 sits above overlay z-index 1049 — banner stays visible even when overlay is active
-- [Phase 02-02]: Expiry badge only renders for VALID state within 30 days — avoids badge on INVALID/ERROR states
-- [Phase 02-enforcement-surface]: User approved frontend license enforcement surface: banner, overlay, expiry badge, and 60s polling verified in browser
+- License subsystem design (v1.1): two-tier gate (startup retry+exit + periodic cron), `LicenseValidator` ported from SageConnect, `sageconnect-license.vercel.app` reused with new client key, `requireLicense` exemption in `main.js` wrapper (middleware stays single-responsibility), no email alerts (Winston warn only), banner z-index 1050 above overlay z-index 1049.
+- Codebase mapped 2026-05-14 → `.planning/codebase/` (7 docs, ~2,000 lines). Use as the read-once primer for new work.
+
+Full decision log for v1.1 is preserved in `.planning/milestones/v1.1-ROADMAP.md` § Key Decisions.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Need new SAGESYNC_API_KEY registered on the license server before Phase 1 can be tested end-to-end
+- None active. (Original v1.1 blocker about `SAGESYNC_API_KEY` registration was resolved during Phase 1 execution.)
+
+### Deferred Items (acknowledged at v1.1 close)
+
+| Category | Item | Status |
+|----------|------|--------|
+| test | `tests/services/fracttalClient.test.js` — `updateWarehouseItem` asserts wrong endpoint (`/items/item1` vs actual `/inventories_adjustment/item1`) | Pre-existing v1.0 bug; carry to v1.2. Source: `.planning/milestones/v1.1-phases/02-enforcement-surface/deferred-items.md` (if archived) or `.planning/phases/02-enforcement-surface/deferred-items.md` (if not yet moved) |
 
 ## Session Continuity
 
-Last session: 2026-04-08T04:28:53.253Z
-Stopped at: Completed 02-02 — license enforcement surface complete (v1.1 milestone done)
+Last session: 2026-05-14T16:55:00.000Z
+Stopped at: v1.1 archived — ready for v1.2 scoping
 Resume file: None
 
-## Handoff prepared on 2026-05-12
+## History
 
-The original owner (Fernando Rodriguez Memije, fmemije00@gmail.com) handed the project off to a new responsible engineer on 2026-05-12. The complete handoff package was assembled on branch `chore/handoff-prep-2026-05`:
-
-- `HANDOFF.md` — entry-point doc for the new owner (Spanish, 17 sections covering state, architecture, deployment, license system, ops, history, FAQ).
-- `ARCHITECTURE.md` — code-facing architecture reference (English, mirrors src/ layout with data flow, lifecycles, integrations, edge cases).
-- `RUNBOOK.md` — production operations runbook (Spanish, recipes for health checks, manual sync, token rotation, troubleshooting, install/uninstall).
-- `docs/MEMORY.md` — curated historical context migrated from .claude/session-memory.md plus decisions and gotchas extracted from .planning/ artifacts.
-- `CLAUDE.md` + `.claude/settings.json` + `.claude/agents/` + `.claude/commands/` — Claude Code best-practice integration (3 custom subagents, 4 project slash commands, permission allowlist with deny for `.env`/`.fracttal-token`/`*.pem`).
-
-No source code under `src/` was modified during handoff prep. No active milestone is in flight; the project is in maintenance mode pending the next owner's direction.
+- **2026-04-07 → 2026-04-08** — Executed v1.1 License Control System (Phases 1–2, 4 plans, 12 requirements). Tag `v1.1`.
+- **2026-05-12** — Handoff package assembled (`HANDOFF.md`, `ARCHITECTURE.md`, `RUNBOOK.md`, `docs/MEMORY.md`, `CLAUDE.md` + `.claude/` integration) by Fernando Rodriguez Memije (`fmemije00@gmail.com`). Branch: `chore/handoff-prep-2026-05`. No source under `src/` modified.
+- **2026-05-14** — Codebase mapped to `.planning/codebase/` (commit `37b2cec`); v1.1 milestone formally closed and archived to `.planning/milestones/v1.1-*.md` + tagged `v1.1`.
