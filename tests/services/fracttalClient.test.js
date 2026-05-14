@@ -251,7 +251,10 @@ describe('FracttalClient', () => {
         const result = await fracttalClient.updateWarehouseItem('warehouse1', 'item1', itemData);
 
         expect(result).toEqual(mockResponse.data);
-        expect(fracttalClient.client.put).toHaveBeenCalledWith('/items/item1', expect.any(Object));
+        // updateWarehouseItem es deprecated y delega a adjustInventoryStock,
+        // que llama PUT /inventories_adjustment/{code} (no PUT /items/{code}).
+        // Test corregido del item diferido en v1.1.
+        expect(fracttalClient.client.put).toHaveBeenCalledWith('/inventories_adjustment/item1', expect.any(Object));
       });
     });
 
