@@ -57,6 +57,7 @@ Run `/gsd-new-milestone` to define goals, requirements, and phases. Candidate th
 - [#10 — Op-8: `SyncStateManager.history` solo en memoria](https://github.com/FReptar0/SageSync/issues/10)
 - [#11 — Op-9: License expiry sin warning proactivo](https://github.com/FReptar0/SageSync/issues/11)
 - [#12 — Op-10: Documentar modelo de actualización periódica en RUNBOOK](https://github.com/FReptar0/SageSync/issues/12)
+- [#14 — Op-11: Token rotation race — INVALID_TOKEN no detectado por interceptor](https://github.com/FReptar0/SageSync/issues/14)
 
 Plans:
 - [ ] TBD (promote with `/gsd-review-backlog` when ready)
