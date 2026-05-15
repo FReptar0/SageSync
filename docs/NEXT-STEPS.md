@@ -104,10 +104,9 @@ El handoff de Fernando Rodríguez Memije fue 2026-05-12 (`HANDOFF.md`). Pero no 
    ```powershell
    cd C:\ruta\al\servidor
    git fetch origin
-   git checkout main
-   git pull origin main
+   git reset --hard origin/main   # NUNCA `git pull` — el repo SageSync-dist está ofuscado, pull genera conflictos irrecuperables
    ```
-   Debe traer hasta `b09c553` (commit del backlog).
+   Debe traer hasta `5141df0` o más reciente.
 
 2. **Reiniciar el servicio para que tome el código nuevo**:
    ```powershell

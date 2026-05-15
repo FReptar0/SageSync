@@ -189,8 +189,12 @@ Desde el repo obfuscado (`SageSync-dist`) o copia manual:
 # Detener el servicio (si seguía corriendo)
 Stop-Service SageSync
 
-# Copiar el nuevo dist (o git pull en el directorio de instalación)
-# ...
+# Actualizar el dist instalado — SIEMPRE git reset --hard, NUNCA git pull
+# (el repo SageSync-dist tiene archivos ofuscados; pull genera conflictos irrecuperables)
+cd E:\SageSync   # o donde esté instalado
+git fetch origin
+git reset --hard origin/main
+npm install --production
 
 # Verificar config.json (especialmente inventoryFilters y locationMapping.GRAL)
 notepad config.json
@@ -284,7 +288,8 @@ copy config.json.bak-pre-family-filter-2026-05-14 config.json
 #    previos en preview.currentStockInWarehouse.
 
 # 4. Si quieres regresar al código viejo (sin family filter):
-#    Restaurar el dist anterior O hacer git checkout v1.1 sobre el repo del cliente.
+#    git fetch origin && git reset --hard v1.1 sobre el repo del cliente.
+#    (NUNCA git checkout / git pull en el dist ofuscado — siempre reset --hard al ref deseado)
 
 # 5. Reiniciar el servicio
 Start-Service SageSync

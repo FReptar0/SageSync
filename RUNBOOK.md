@@ -371,7 +371,8 @@ Idempotente: si el servicio ya existe, sale sin hacer nada y te pide desinstalar
 # [Admin]
 Stop-Service SageSync
 cd E:\SageSync
-git pull origin main         # SageSync-dist, el repo ofuscado
+git fetch origin
+git reset --hard origin/main   # NUNCA `git pull` — el repo SageSync-dist está ofuscado, pull genera conflictos irrecuperables
 npm install --production
 Start-Service SageSync
 ```
