@@ -77,6 +77,22 @@ Plans:
 Plans:
 - [ ] TBD (promote with `/gsd-review-backlog` when ready)
 
+### Phase 999.3: Refactor sync a entries/exits para almacenes integrados (BACKLOG)
+
+**Goal:** Reemplazar la arquitectura actual del sync (basada en `PUT /inventories_adjustment/`, "stock absoluto") por un sync de "deltas de movimiento" usando `POST /warehouse_entries_orders/{warehouse_code}` y `POST /warehouse_outputs_orders/`. Necesario para que SageSync funcione contra cualquier almacén con `external_integration: true` en Fracttal — incluyendo COZAMIN 1 en prod del cliente Capstone Gold/Cozamin.
+
+**Requirements:** TBD — derivar del issue.
+
+**Plans:** 0 plans
+
+**Issue asociado (GitHub):**
+- [#13 — [CRITICAL] adjustInventoryStock bloqueado en almacenes integrados](https://github.com/FReptar0/SageSync/issues/13)
+
+**Contexto crítico:** el endpoint `PUT /inventories_adjustment/` retorna HTTP 400 con mensaje literal `"Inventory adjustments cannot be made in integrated warehouses"` cuando el almacén tiene `external_integration: true`. Los tres casos del sync (Case A/B/C en `src/app.js:149-198`) terminan en `adjustInventoryStock`, así que **el sync entero falla** contra COZAMIN 1. Mitigación temporal aplicada: `warehouseCreationSettings.defaultValues.external_integration` cambiado a `false` para almacenes que SageSync cree en el futuro. **No resuelve COZAMIN 1 en prod.** Existe ruta alterna operativa (Tersoft + cliente cambian COZAMIN 1 a no-integrado en Fracttal UI) que sería más rápida; este backlog cubre la solución técnica si la ruta operativa no es viable.
+
+Plans:
+- [ ] TBD (promote with `/gsd-review-backlog` when ready)
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -85,3 +101,4 @@ Plans:
 | 2. Enforcement Surface | v1.1 | 2/2 | ✅ Complete | 2026-04-08 |
 | 999.1. Operational hardening del sync periódico | Backlog | 0/0 | 📋 Backlog | — |
 | 999.2. Semántica de inventario respetando curación operativa | Backlog | 0/0 | 📋 Backlog | — |
+| 999.3. Refactor sync a entries/exits para almacenes integrados | Backlog | 0/0 | 📋 Backlog | — |

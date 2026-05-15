@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-stopped_at: v1.1 archived 2026-05-14 — ready to scope v1.2 with /gsd-new-milestone
-last_updated: "2026-05-14T16:55:00.000Z"
-last_activity: 2026-05-14 — Archived v1.1 License Control System (full milestone close, tag v1.1)
+stopped_at: 2026-05-15 — issue #13 (CRITICAL) blocks prod deploy; backlog 999.3 added; sandbox unblocked via config change
+last_updated: "2026-05-15T12:00:00.000Z"
+last_activity: 2026-05-15 — Discovered external_integration blocker on adjustInventoryStock; filed issue #13; added backlog 999.3
 progress:
   total_phases: 0
   completed_phases: 0
@@ -44,7 +44,7 @@ None.
 
 ### Blockers/Concerns
 
-- None active. (Original v1.1 blocker about `SAGESYNC_API_KEY` registration was resolved during Phase 1 execution.)
+- **CRITICAL — issue #13 (2026-05-15):** `PUT /inventories_adjustment/` returns HTTP 400 on warehouses with `external_integration: true`. COZAMIN 1 in prod has this flag. **Sync entirely fails against COZAMIN 1 as currently designed.** Mitigation applied to `config.json` (default for new warehouses now `false`) but does NOT resolve COZAMIN 1. Two paths: (A) operational — Tersoft + client change flag in Fracttal UI; (B) technical — refactor sync to entries/exits delta (backlog 999.3). Must resolve before any prod deploy. See `docs/NEXT-STEPS.md` § D5 + Fase 0.
 
 ### Deferred Items (acknowledged at v1.1 close)
 
@@ -62,4 +62,5 @@ Resume file: None
 
 - **2026-04-07 → 2026-04-08** — Executed v1.1 License Control System (Phases 1–2, 4 plans, 12 requirements). Tag `v1.1`.
 - **2026-05-12** — Handoff package assembled (`HANDOFF.md`, `ARCHITECTURE.md`, `RUNBOOK.md`, `docs/MEMORY.md`, `CLAUDE.md` + `.claude/` integration) by Fernando Rodriguez Memije (`fmemije00@gmail.com`). Branch: `chore/handoff-prep-2026-05`. No source under `src/` modified.
-- **2026-05-14** — Codebase mapped to `.planning/codebase/` (commit `37b2cec`); v1.1 milestone formally closed and archived to `.planning/milestones/v1.1-*.md` + tagged `v1.1`.
+- **2026-05-14** — Codebase mapped to `.planning/codebase/` (commit `37b2cec`); v1.1 milestone formally closed and archived to `.planning/milestones/v1.1-*.md` + tagged `v1.1`. Family-filter sync implemented (commits `23556cb` → `4ed45a5`, 110/110 tests green). 11 issues filed (#2-#12) for post-handoff hardening; backlog 999.1 + 999.2 added.
+- **2026-05-15** — E2E validation in test server revealed CRITICAL blocker: `external_integration: true` on integrated warehouses blocks `PUT /inventories_adjustment/` with HTTP 400. Issue #13 filed; backlog 999.3 added. `config.json` defaults patched to `external_integration: false` for new warehouses (mitigation only — does not resolve COZAMIN 1 in prod which already has the flag). Fase 0 added to `docs/NEXT-STEPS.md` action plan.

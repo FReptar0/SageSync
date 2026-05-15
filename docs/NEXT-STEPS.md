@@ -1,17 +1,18 @@
 # Próximos pasos — SageSync
 
-**Última actualización:** 2026-05-14
-**Estado:** Family-filter sync implementado + 11 issues identificados durante validación contra prod. Listo para deploy en servidor de pruebas contra sandbox, **NO listo** para producción sin coordinación operativa previa.
+**Última actualización:** 2026-05-15
+**Estado:** Family-filter sync implementado. **Blocker CRÍTICO descubierto el 2026-05-15** — `external_integration: true` en COZAMIN 1 (prod) bloquea el endpoint `adjustInventoryStock` del que dependen los tres casos del sync. Ver issue #13. Hay mitigación temporal aplicada al config para almacenes nuevos, pero NO resuelve COZAMIN 1.
 
 ---
 
 ## TL;DR (lee esto primero, 30 segundos)
 
-1. **El código del family-filter sync está listo, testeado (110/110 verde), pusheado a `origin/main` y bien documentado**. Tag git: hasta `v1.1`; el trabajo de hoy aún sin tag (vive en `main` post-v1.1).
-2. **NO deployes a producción sin antes**: corregir `config.json.locationMapping.GRAL.fracttalWarehouseCode` (hoy apunta al almacén equivocado) **y** coordinar con el equipo operativo de Cozamin sobre el manejo de las 787 requisiciones abiertas.
-3. **Sí puedes deployar al servidor de pruebas** apuntando al **sandbox de Fracttal** (no al prod del cliente) usando `npm run sync:preview` primero, luego `npm run sync`. La configuración actual de `.env` ya apunta al sandbox.
-4. Las 11 issues en GitHub (#2 a #12) son trabajo del nuevo owner del proyecto. Están agrupadas en 2 backlog items en `.planning/ROADMAP.md` (999.1 y 999.2).
-5. Hay un goal de sesión Claude Code activo todavía — usa `/goal clear` cuando aceptes que la sesión está cerrada.
+1. **NUEVO BLOCKER CRÍTICO (issue #13):** la API de Fracttal rechaza `PUT /inventories_adjustment/` con HTTP 400 cuando el almacén tiene `external_integration: true`. **COZAMIN 1 en prod tiene este flag**. Antes de cualquier deploy a prod hay que resolver esto: o bien el cliente cambia el flag en Fracttal UI (ruta operativa A, rápida), o bien se refactoriza SageSync a un sync de entries/exits delta (ruta técnica B, fase 999.3).
+2. **El código del family-filter sync está listo, testeado (110/110 verde), pusheado a `origin/main` y bien documentado**. Tag git: hasta `v1.1`; el trabajo de hoy aún sin tag (vive en `main` post-v1.1).
+3. **NO deployes a producción sin antes**: resolver issue #13 **y** corregir `config.json.locationMapping.GRAL.fracttalWarehouseCode` (hoy apunta al almacén equivocado) **y** coordinar con el equipo operativo de Cozamin sobre las 787 requisiciones abiertas.
+4. **Sí puedes deployar al servidor de pruebas** apuntando al **sandbox de Fracttal** (no al prod del cliente). Para que `npm run test:workflow` pase verde, **borra el almacén TEST001 existente en sandbox** desde Fracttal UI antes de re-correr (la versión vieja se creó como integrada). El nuevo `config.json` ya tiene `external_integration: false` por defecto.
+5. Las 12 issues en GitHub (#2 a #13) son trabajo del nuevo owner del proyecto. Agrupadas en 3 backlog items en `.planning/ROADMAP.md` (999.1, 999.2, 999.3).
+6. Hay un goal de sesión Claude Code activo todavía — usa `/goal clear` cuando aceptes que la sesión está cerrada.
 
 ---
 
@@ -41,7 +42,38 @@ Pusheado a `origin/main`:
 - **`.planning/ROADMAP.md`** ahora tiene sección `## Backlog`:
   - Phase **999.1** — Operational hardening del sync periódico (links a issues #3-#12)
   - Phase **999.2** — Semántica de inventario respetando curación operativa (link a issue #2)
-- 11 GitHub issues abiertos en https://github.com/FReptar0/SageSync/issues
+  - Phase **999.3** — Refactor sync a entries/exits para almacenes integrados (link a issue #13) **[NUEVA, 2026-05-15]**
+- 12 GitHub issues abiertos en https://github.com/FReptar0/SageSync/issues
+
+---
+
+## Lo que se descubrió en la sesión 2026-05-15
+
+### Validación end-to-end en servidor de pruebas → blocker crítico
+
+Al correr `npm run test:workflow` en el servidor de pruebas contra el sandbox de Fracttal, los pasos 5 y 7 fallaron con HTTP 400 y mensaje literal:
+
+```
+field: code_warehouse
+message: "Inventory adjustments cannot be made in integrated warehouses"
+field_validation: CUSTOM
+```
+
+**Root cause:** `PUT /inventories_adjustment/` (método `adjustInventoryStock` en `src/services/fracttalClient.js:478-489`) está bloqueado por la API de Fracttal cuando el almacén destino tiene `external_integration: true`. Adicionalmente, `POST /inventories/` acepta el item pero **ignora silenciosamente el campo `stock`** en almacenes integrados (lo crea en 0).
+
+**Impacto:** los tres casos del sync (`src/app.js:149-198`) terminan en `adjustInventoryStock`. **El sync entero falla contra cualquier almacén integrado**, incluyendo COZAMIN 1 en prod (`external_integration: true` verificado el 2026-05-13 vía RPC). Para detalles completos ver issue #13.
+
+### Mitigaciones aplicadas en este commit
+
+1. **`config.json` — `warehouseCreationSettings.defaultValues.external_integration` cambiado de `true` a `false`.** Cualquier almacén que SageSync auto-cree en el futuro será no-integrado, lo cual es el modelo correcto para esta arquitectura de "stock absoluto". **NO resuelve COZAMIN 1 en prod** (ya existe como integrado).
+2. **Issue #13 abierto** con root cause, impacto, dos rutas de resolución (operativa A vs técnica B) y recomendación para el siguiente owner.
+3. **Backlog 999.3** agregado a `.planning/ROADMAP.md` para la ruta técnica B (refactor a entries/exits delta).
+
+### Pendiente para validar el sandbox después de este commit
+
+- Borrar TEST001 desde Fracttal sandbox UI (https://app.fracttal.com → Almacenes → TEST001 → eliminar). La versión actual fue creada con `external_integration: true` y conservará el flag aunque el config cambie.
+- En servidor de pruebas: `git fetch origin && git reset --hard origin/main` para traer el config nuevo.
+- Re-correr `npm run test:workflow`. Esperado: PASOS 1-9 OK, `Listo para produccion: SI` (con el caveat de que esto valida el sandbox, no resuelve COZAMIN 1 en prod).
 
 ---
 
@@ -90,11 +122,28 @@ Recomendación práctica: **arreglar los 3 críticos antes de prod** (#3 timezon
 
 ### D4 — ¿Quién es el nuevo owner del proyecto?
 
-El handoff de Fernando Rodríguez Memije fue 2026-05-12 (`HANDOFF.md`). Pero no hay nombre asignado del siguiente. Sin owner, los 11 issues nuevos pueden quedar huérfanos.
+El handoff de Fernando Rodríguez Memije fue 2026-05-12 (`HANDOFF.md`). Pero no hay nombre asignado del siguiente. Sin owner, los 12 issues nuevos pueden quedar huérfanos.
+
+### D5 — ¿Cómo se resuelve el blocker de almacén integrado (issue #13)?
+
+`COZAMIN 1` en prod tiene `external_integration: true`. Ese flag bloquea `PUT /inventories_adjustment/` que es el endpoint del que dependen los tres casos del sync. Hay dos rutas:
+
+| Ruta | Quién decide | Qué implica | Tiempo |
+|---|---|---|---|
+| **A — Operativa** | Tersoft + cliente Cozamin | Cambiar `external_integration` a `false` en COZAMIN 1 desde Fracttal UI. Riesgo: cambia cómo Fracttal trata movimientos en otros módulos (compras, requisiciones — recordar que hay 787 abiertas). | Minutos en UI + alineación con cliente |
+| **B — Técnica** | Nuevo owner del proyecto | Refactorizar `src/app.js` para que el sync produzca entradas/salidas delta (`POST /warehouse_entries_orders/`, `POST /warehouse_outputs_orders/`) en lugar de ajustes absolutos. Los métodos ya existen en `fracttalClient.js:521-555`. Tracked como fase 999.3. | 1-2 sprints |
+
+**Stakeholder a contactar primero:** Sandra Pelaez (sandra.pelaez@tersoft.mx) para evaluar la ruta operativa A. Si el cliente NO puede/quiere cambiar el flag, escalar a fase 999.3 con desarrollo formal.
+
+**No deployar prod hasta resolver D5.** El sync silenciosamente dejará todo en stock=0 si COZAMIN 1 sigue integrado.
 
 ---
 
 ## Plan de acción recomendado (en orden)
+
+### Fase 0 — Resolver issue #13 (NUEVO, prerequisito de Fase E)
+
+**Bloquea cualquier deploy a prod del cliente.** Antes de seguir cualquier otra fase, decidir entre ruta A (operativa) y ruta B (técnica) per D5. Si se elige A, esperar confirmación + screenshot del cliente cambiando el flag antes de proceder. Si se elige B, abrir milestone v1.2 con la fase 999.3 y planificar formalmente.
 
 ### Fase A — Validación en servidor de pruebas (sandbox)
 
@@ -106,27 +155,35 @@ El handoff de Fernando Rodríguez Memije fue 2026-05-12 (`HANDOFF.md`). Pero no 
    git fetch origin
    git reset --hard origin/main   # NUNCA `git pull` — el repo SageSync-dist está ofuscado, pull genera conflictos irrecuperables
    ```
-   Debe traer hasta `5141df0` o más reciente.
+   Debe traer hasta el commit que agrega `external_integration: false` en `config.json` + el doc del issue #13.
 
-2. **Reiniciar el servicio para que tome el código nuevo**:
+2. **Borrar TEST001 desde Fracttal sandbox UI** (https://app.fracttal.com → Almacenes → TEST001 → eliminar). La versión vieja se creó como integrada y conservaría el flag aunque el config cambie. El próximo `npm run test:workflow` lo recreará no-integrado.
+
+3. **Reiniciar el servicio para que tome el código nuevo**:
    ```powershell
    Stop-Service SageSync
    Start-Service SageSync
    ```
 
-3. **Ejecutar dry-run** (no escribe a Fracttal):
+4. **Ejecutar el workflow test E2E** (valida la cadena completa Fracttal):
+   ```powershell
+   npm run test:workflow
+   ```
+   Esperado: PASOS 1-9 en `[OK]`, `Listo para produccion: SI`. Si PASO 5 o 7 fallan con "integrated warehouses", significa que TEST001 no se borró bien — repite el paso 2.
+
+5. **Ejecutar dry-run** (no escribe a Fracttal):
    ```powershell
    npm run sync:preview
    ```
    Esperado: salida con `caseCounts`, `preview[]`. Sin DB Sage real no procesará items; con DB Sage debería procesar lo que el query filtra.
 
-4. **Si dry-run pasa, ejecutar sync real**:
+6. **Si dry-run pasa, ejecutar sync real**:
    ```powershell
    npm run sync
    ```
    Cero impacto en prod del cliente — el sandbox de Fracttal es independiente.
 
-5. **Verificar logs**:
+7. **Verificar logs**:
    ```powershell
    Get-Content logs\sagesync.log -Tail 50
    ```
@@ -150,7 +207,7 @@ Cuando se confirme el almacén destino:
 
 ### Fase E — Primer sync coordinado en prod
 
-Solo cuando D1, D2 y Fase C estén hechas. Seguir el playbook en `docs/FAMILY-FILTER-ROLLOUT.md` sección 2 paso por paso. **Dry-run obligatorio** antes del primer sync real.
+Solo cuando **Fase 0** (issue #13 resuelto), D1, D2 y Fase C estén hechas. Seguir el playbook en `docs/FAMILY-FILTER-ROLLOUT.md` sección 2 paso por paso. **Dry-run obligatorio** antes del primer sync real. Si la ruta elegida en Fase 0 fue la operativa (A — cliente cambió `external_integration` en COZAMIN 1 a `false`), validar también con `getWarehouseByCode("COZAMIN 1")` que el flag esté efectivamente en `false` antes de correr el sync.
 
 ### Fase F — Operación sostenida + atacar el resto del backlog
 
@@ -165,7 +222,9 @@ Cuando el cliente está sincronizando en prod, ir tomando los issues restantes e
 
 | ❌ NO hagas | Razón |
 |---|---|
+| `npm run sync` en prod sin resolver issue #13 primero | Si COZAMIN 1 sigue con `external_integration: true`, el sync silenciosamente dejará todo en stock=0 (POST /inventories/ ignora el campo) y los ajustes posteriores fallarán con HTTP 400. Ver issue #13. |
 | `npm run sync` en prod sin antes corregir `config.json` y correr dry-run | Sobrescribirías `ALM-AMP` (shell vacío) o peor, los $43M de COZAMIN 1 |
+| Cambiar `external_integration: false` de regreso a `true` en `warehouseCreationSettings.defaultValues` | El default en `false` es la mitigación temporal para que SageSync no siga creando almacenes que rompen el sync. Ver issue #13. |
 | Cambiar `inventoryFilters.itemBracketId` o `segment1Excluded` sin entender qué deja entrar | Es lo que define qué items se sincronizan. Cambios mal hechos = sync de TODO el catálogo Sage |
 | Borrar el almacén `ALM-AMP` desde Fracttal sin entender por qué existe | Ver D1. Puede ser intencional. Coordinar primero. |
 | Aceptar el trade-off del issue #2 sin confirmar con el cliente | Tersoft lo aceptó pero hay que verificar con el cliente final |
@@ -220,6 +279,9 @@ npm run test:credentials
 
 ### GitHub issues por prioridad
 
+**BLOCKER PROD (resolver antes de cualquier deploy a prod del cliente):**
+- [#13 — adjustInventoryStock bloqueado en almacenes integrados](https://github.com/FReptar0/SageSync/issues/13) **[NUEVO 2026-05-15]**
+
 **Críticos antes de prod del cliente**:
 - [#3 — Op-1 timezone](https://github.com/FReptar0/SageSync/issues/3)
 - [#5 — Op-3 healthcheck](https://github.com/FReptar0/SageSync/issues/5)
@@ -268,4 +330,4 @@ npm run test:credentials
 
 ---
 
-*Generado durante la sesión Claude Code del 2026-05-14, posterior al deploy de family-filter sync y validación contra tenant prod 779 (Capstone Gold / Cozamin). Si encuentras errores o información desactualizada en este doc, actualízalo en el mismo PR donde resuelvas la cosa.*
+*Generado durante la sesión Claude Code del 2026-05-14 (deploy de family-filter sync y validación contra tenant prod 779 — Capstone Gold / Cozamin). Actualizado el 2026-05-15 con el blocker crítico del issue #13 descubierto durante validación E2E en servidor de pruebas. Si encuentras errores o información desactualizada en este doc, actualízalo en el mismo PR donde resuelvas la cosa.*

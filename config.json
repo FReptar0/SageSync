@@ -53,7 +53,7 @@
     "prefix": "SAGE-",
     "defaultValues": {
       "active": true,
-      "external_integration": true,
+      "external_integration": false,
       "visible_to_all": true,
       "material_request_approval": false,
       "allow_negative_stock": false,
