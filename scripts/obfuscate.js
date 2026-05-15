@@ -36,6 +36,7 @@ const COPY_AS_IS = [
     'public',
     'config.json',
     '.env.example',
+    'tests',  // Incluir suite de tests para QA en cliente
 ];
 
 // Carpetas cuyo JS se ofuscará
@@ -49,7 +50,6 @@ const EXCLUDED = [
     'dist',
     'logs',
     'reports',
-    'tests',
     'coverage',
     'backups',
     'postman',
@@ -63,6 +63,10 @@ const EXCLUDED = [
     '.planning',
     'docs',
     'scripts/obfuscate.js',  // No incluir este script en la distribución
+    // NOTA: 'tests' ya NO está excluido — se incluyen en dist para QA en cliente.
+    // Tests unitarios contra src/ ofuscado pueden fallar si el obfuscator
+    // renombra métodos públicos. Tests de integración via HTTP / mocks deberían
+    // funcionar igual.
 ];
 
 // Opciones de javascript-obfuscator (nivel alto)
@@ -238,12 +242,22 @@ async function main() {
     ].join('\n');
     fs.writeFileSync(path.join(DIST_DIR, '.gitignore'), distGitignore, 'utf8');
 
-    // 5. Modificar package.json en dist (quitar devDependencies y scripts innecesarios)
+    // 5. Modificar package.json en dist (mantener devDependencies de testing y scripts QA)
     const pkgPath = path.join(DIST_DIR, 'package.json');
     if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        delete pkg.devDependencies;
-        // Mantener solo scripts de producción
+
+        // Mantener solo devDependencies útiles para QA en cliente; quitar build/dev tools.
+        if (pkg.devDependencies) {
+            const keepDev = ['jest', 'supertest'];
+            const filtered = {};
+            for (const k of keepDev) {
+                if (pkg.devDependencies[k]) filtered[k] = pkg.devDependencies[k];
+            }
+            pkg.devDependencies = filtered;
+        }
+
+        // Scripts producción + QA (tests + maintenance)
         pkg.scripts = {
             start: pkg.scripts?.start || 'node src/main.js',
             'sync-only': pkg.scripts?.['sync-only'] || 'node src/app.js',
@@ -255,9 +269,16 @@ async function main() {
             'maintenance:backup': pkg.scripts?.['maintenance:backup'] || 'node src/maintenance.js backup-config',
             'install-service': pkg.scripts?.['install-service'] || 'node src/service-installer.js install',
             'uninstall-service': pkg.scripts?.['uninstall-service'] || 'node src/service-installer.js uninstall',
+            // QA scripts — tests/ se copia al dist
+            test: pkg.scripts?.test || 'jest',
+            'test:fracttal': pkg.scripts?.['test:fracttal'] || 'jest tests/services/fracttalClient.test.js',
+            'test:sage': pkg.scripts?.['test:sage'] || 'jest tests/services/sageService.test.js',
+            'test:integration': pkg.scripts?.['test:integration'] || 'jest tests/integration/',
+            'test:credentials': pkg.scripts?.['test:credentials'] || 'node tests/manual/test-credentials.js',
+            'test:workflow': pkg.scripts?.['test:workflow'] || 'node tests/manual/test-workflow.js',
         };
         fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), 'utf8');
-        console.log('  ✅ package.json limpiado para producción');
+        console.log('  ✅ package.json preparado (runtime + QA scripts + jest/supertest devDeps)');
     }
 
     console.log();

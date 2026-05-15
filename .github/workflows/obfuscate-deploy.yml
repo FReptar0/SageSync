@@ -7,6 +7,10 @@ on:
       - 'public/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'scripts/**'   # cambios al obfuscate.js / setup-automap.js disparan rebuild
+      - 'tests/**'     # tests/ ahora se incluyen en dist; cambios a tests rebuildean
+      - 'jest.config.js'
+      - 'config.json'  # changes to baseline config (filtros, mapping) deben llegar a dist
   workflow_dispatch:  # Permite ejecución manual desde GitHub UI
 
 env:
