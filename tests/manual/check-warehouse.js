@@ -50,12 +50,19 @@ async function main() {
 
     try {
         const resp = await client.getWarehouseByCode(code);
-        const data = resp?.data || resp;
+        const data = resp?.data;
         const w = Array.isArray(data) ? data[0] : data;
 
-        if (!w) {
-            console.log(`📭 Almacén ${code} no devolvió data utilizable.`);
-            console.log('Respuesta cruda:', JSON.stringify(resp).substring(0, 600));
+        // Fracttal a veces responde 200 con data vacía (array [] o objeto sin code)
+        // en vez de 404 cuando el almacén no existe. Detectamos ambos casos.
+        const looksEmpty = !w
+            || (Array.isArray(data) && data.length === 0)
+            || (typeof w === 'object' && !w.code && !w.description && w.active === undefined);
+
+        if (looksEmpty) {
+            console.log(`📭 Almacén ${code} NO existe (200 con data vacía).`);
+            console.log('   Si SageSync corre con autoCreate:true, el primer sync lo creará');
+            console.log('   con los defaults de config.json.warehouseCreationSettings.defaultValues.');
             process.exit(2);
         }
 
