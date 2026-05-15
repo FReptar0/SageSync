@@ -248,7 +248,11 @@ async function main() {
             start: pkg.scripts?.start || 'node src/main.js',
             'sync-only': pkg.scripts?.['sync-only'] || 'node src/app.js',
             sync: pkg.scripts?.sync || 'node src/sync.js',
+            'sync:preview': pkg.scripts?.['sync:preview'] || 'node src/sync.js --dry-run',
             maintenance: pkg.scripts?.maintenance || 'node src/maintenance.js',
+            'maintenance:clean': pkg.scripts?.['maintenance:clean'] || 'node src/maintenance.js clean-logs',
+            'maintenance:token': pkg.scripts?.['maintenance:token'] || 'node src/maintenance.js renew-token',
+            'maintenance:backup': pkg.scripts?.['maintenance:backup'] || 'node src/maintenance.js backup-config',
             'install-service': pkg.scripts?.['install-service'] || 'node src/service-installer.js install',
             'uninstall-service': pkg.scripts?.['uninstall-service'] || 'node src/service-installer.js uninstall',
         };
