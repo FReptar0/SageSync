@@ -276,6 +276,9 @@ async function main() {
             'test:integration': pkg.scripts?.['test:integration'] || 'jest tests/integration/',
             'test:credentials': pkg.scripts?.['test:credentials'] || 'node tests/manual/test-credentials.js',
             'test:workflow': pkg.scripts?.['test:workflow'] || 'node tests/manual/test-workflow.js',
+            // Inspectores diagnósticos (issue #13 — auditoría external_integration por almacén)
+            'inspect:warehouse': pkg.scripts?.['inspect:warehouse'] || 'node tests/manual/check-warehouse.js',
+            'inspect:warehouses': pkg.scripts?.['inspect:warehouses'] || 'node tests/manual/list-warehouses.js',
         };
         fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), 'utf8');
         console.log('  ✅ package.json preparado (runtime + QA scripts + jest/supertest devDeps)');

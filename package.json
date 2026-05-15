@@ -19,6 +19,8 @@
     "test:api": "node tests/manual/test-api-with-logs.js",
     "test:credentials": "node tests/manual/test-credentials.js",
     "test:workflow": "node tests/manual/test-workflow.js",
+    "inspect:warehouse": "node tests/manual/check-warehouse.js",
+    "inspect:warehouses": "node tests/manual/list-warehouses.js",
     "maintenance": "node src/maintenance.js",
     "maintenance:clean": "node src/maintenance.js clean-logs",
     "maintenance:token": "node src/maintenance.js renew-token",
