@@ -1,17 +1,19 @@
 # Próximos pasos — SageSync
 
-**Última actualización:** 2026-05-15
-**Estado:** Family-filter sync implementado. **Blocker CRÍTICO descubierto el 2026-05-15** — `external_integration: true` en COZAMIN 1 (prod) bloquea el endpoint `adjustInventoryStock` del que dependen los tres casos del sync. Ver issue #13. Hay mitigación temporal aplicada al config para almacenes nuevos, pero NO resuelve COZAMIN 1.
+**Última actualización:** 2026-05-15 (segunda actualización del día tras validación parcial en servidor de prueba)
+**Estado:** Family-filter sync implementado. Validación parcial en servidor de prueba completada (steps 0-5). Faltan steps 6-9 documentados en [`docs/TEST-SERVER-PLAYBOOK.md`](./TEST-SERVER-PLAYBOOK.md). **Blocker CRÍTICO de prod (issue #13)** — `external_integration: true` en COZAMIN 1 bloquea `adjustInventoryStock`. Mitigación parcial aplicada al config para almacenes nuevos, NO resuelve COZAMIN 1.
+
+> **Para el siguiente owner que continúa la validación en servidor de prueba:** lee [`docs/TEST-SERVER-PLAYBOOK.md`](./TEST-SERVER-PLAYBOOK.md) — ahí están los pasos 6-9 con los gotchas detectados durante steps 0-5.
 
 ---
 
 ## TL;DR (lee esto primero, 30 segundos)
 
-1. **NUEVO BLOCKER CRÍTICO (issue #13):** la API de Fracttal rechaza `PUT /inventories_adjustment/` con HTTP 400 cuando el almacén tiene `external_integration: true`. **COZAMIN 1 en prod tiene este flag**. Antes de cualquier deploy a prod hay que resolver esto: o bien el cliente cambia el flag en Fracttal UI (ruta operativa A, rápida), o bien se refactoriza SageSync a un sync de entries/exits delta (ruta técnica B, fase 999.3).
-2. **El código del family-filter sync está listo, testeado (110/110 verde), pusheado a `origin/main` y bien documentado**. Tag git: hasta `v1.1`; el trabajo de hoy aún sin tag (vive en `main` post-v1.1).
-3. **NO deployes a producción sin antes**: resolver issue #13 **y** corregir `config.json.locationMapping.GRAL.fracttalWarehouseCode` (hoy apunta al almacén equivocado) **y** coordinar con el equipo operativo de Cozamin sobre las 787 requisiciones abiertas.
-4. **Sí puedes deployar al servidor de pruebas** apuntando al **sandbox de Fracttal** (no al prod del cliente). Para que `npm run test:workflow` pase verde, **borra el almacén TEST001 existente en sandbox** desde Fracttal UI antes de re-correr (la versión vieja se creó como integrada). El nuevo `config.json` ya tiene `external_integration: false` por defecto.
-5. Las 12 issues en GitHub (#2 a #13) son trabajo del nuevo owner del proyecto. Agrupadas en 3 backlog items en `.planning/ROADMAP.md` (999.1, 999.2, 999.3).
+1. **VALIDACIÓN PARCIAL EN SERVIDOR DE PRUEBA (2026-05-15):** steps 0-5 del playbook completados verde. Sync:preview corrió contra Sage300 real con filtros familia: 9,114 items query / Case B: 2,791 / Case C: 6,321 / 1 error transient (issue #14). Faltan steps 6-9 (sync real al sandbox + verificación visual + empaque de evidencia). **Continuar siguiendo [`docs/TEST-SERVER-PLAYBOOK.md`](./TEST-SERVER-PLAYBOOK.md)**.
+2. **BLOCKER CRÍTICO DE PROD (issue #13):** la API de Fracttal rechaza `PUT /inventories_adjustment/` con HTTP 400 cuando el almacén tiene `external_integration: true`. **COZAMIN 1 en prod tiene este flag**. Antes de cualquier deploy a prod hay que resolver esto: o bien el cliente cambia el flag en Fracttal UI (ruta operativa A, rápida), o bien se refactoriza SageSync a un sync de entries/exits delta (ruta técnica B, fase 999.3).
+3. **El código del family-filter sync está listo, testeado (110/110 verde), pusheado a `origin/main` y bien documentado**. Tag git: hasta `v1.1`; el trabajo del 14-15 mayo aún sin tag (vive en `main` post-v1.1).
+4. **NO deployes a producción sin antes**: completar steps 6-9 del playbook + resolver issue #13 + corregir `config.json.locationMapping.GRAL.fracttalWarehouseCode` si decisión D1 cambia + coordinar con Cozamin sobre las 787 requisiciones abiertas.
+5. Las 13 issues en GitHub (#2 a #14) son trabajo del nuevo owner. Agrupadas en 3 backlog items en `.planning/ROADMAP.md` (999.1, 999.2, 999.3).
 6. Hay un goal de sesión Claude Code activo todavía — usa `/goal clear` cuando aceptes que la sesión está cerrada.
 
 ---

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-stopped_at: 2026-05-15 — issue #13 (CRITICAL) blocks prod deploy; backlog 999.3 added; sandbox unblocked via config change
-last_updated: "2026-05-15T12:00:00.000Z"
-last_activity: 2026-05-15 — Discovered external_integration blocker on adjustInventoryStock; filed issue #13; added backlog 999.3
+stopped_at: 2026-05-15 — partial test-server validation (steps 0-5 green); steps 6-9 handed off to next owner via TEST-SERVER-PLAYBOOK.md
+last_updated: "2026-05-15T22:00:00.000Z"
+last_activity: 2026-05-15 — Test-server validation steps 0-5 complete; sync:preview verde con 9,114 items; issue #14 filed; playbook for steps 6-9 written
 progress:
   total_phases: 0
   completed_phases: 0
@@ -64,3 +64,4 @@ Resume file: None
 - **2026-05-12** — Handoff package assembled (`HANDOFF.md`, `ARCHITECTURE.md`, `RUNBOOK.md`, `docs/MEMORY.md`, `CLAUDE.md` + `.claude/` integration) by Fernando Rodriguez Memije (`fmemije00@gmail.com`). Branch: `chore/handoff-prep-2026-05`. No source under `src/` modified.
 - **2026-05-14** — Codebase mapped to `.planning/codebase/` (commit `37b2cec`); v1.1 milestone formally closed and archived to `.planning/milestones/v1.1-*.md` + tagged `v1.1`. Family-filter sync implemented (commits `23556cb` → `4ed45a5`, 110/110 tests green). 11 issues filed (#2-#12) for post-handoff hardening; backlog 999.1 + 999.2 added.
 - **2026-05-15** — E2E validation in test server revealed CRITICAL blocker: `external_integration: true` on integrated warehouses blocks `PUT /inventories_adjustment/` with HTTP 400. Issue #13 filed; backlog 999.3 added. `config.json` defaults patched to `external_integration: false` for new warehouses (mitigation only — does not resolve COZAMIN 1 in prod which already has the flag). Fase 0 added to `docs/NEXT-STEPS.md` action plan.
+- **2026-05-15 (later)** — Test-server validation steps 0-5 completed: workflow E2E green, family-filter sync:preview verde con 9,114 items reales del Sage300 del cliente / Case B: 2,791 / Case C: 6,321 / 1 error transient (token rotation race). Issue #14 filed for token rotation. Inspector scripts shipped (`npm run inspect:warehouse`, `npm run inspect:warehouses`). Steps 6-9 (sync real, server up, visual UI verification, evidence packing) handed off to next owner via new `docs/TEST-SERVER-PLAYBOOK.md`.
