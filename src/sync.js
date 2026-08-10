@@ -2,17 +2,22 @@
 
 const { validateEnv } = require('./utils/validateEnv');
 const { validate: validateLicense } = require('./services/LicenseValidator');
-const { syncInventory } = require('./app');
+const { syncInventory, syncInventoryMoved } = require('./app');
 const logger = require('./config/logger');
 
 async function runSync() {
     // Soportar --dry-run para preview sin escribir a Fracttal.
     const dryRun = process.argv.includes('--dry-run') || process.argv.includes('--dryRun');
+    // Soportar --moved (alias --daily): corre la CARGA DIARIA/delta (solo lo que se
+    // movió) en lugar de la CARGA INICIAL (todo). Ver src/app.js → syncInventoryMoved.
+    const moved = process.argv.includes('--moved') || process.argv.includes('--daily');
+    const runFn = moved ? syncInventoryMoved : syncInventory;
+    const modeLabel = moved ? 'DIARIA (delta)' : 'INICIAL (completa)';
 
     logger.info('='.repeat(60));
     logger.info(dryRun
-        ? 'INICIANDO DRY-RUN DE SINCRONIZACIÓN (sin escrituras a Fracttal)'
-        : 'INICIANDO PROCESO DE SINCRONIZACIÓN MANUAL');
+        ? `INICIANDO DRY-RUN DE SINCRONIZACIÓN ${modeLabel} (sin escrituras a Fracttal)`
+        : `INICIANDO PROCESO DE SINCRONIZACIÓN ${modeLabel} MANUAL`);
     logger.info('='.repeat(60));
 
     // ENF-03/LIC-01: Startup license gate -- validates env then license before any sync
@@ -20,7 +25,7 @@ async function runSync() {
     await validateLicense({ startup: true });
 
     try {
-        const summary = await syncInventory({ dryRun });
+        const summary = await runFn({ dryRun });
         logger.info('='.repeat(60));
         logger.info(dryRun
             ? 'DRY-RUN COMPLETADO — revisar resumen y preview antes de un sync real'

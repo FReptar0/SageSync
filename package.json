@@ -10,6 +10,8 @@
     "dev-sync": "nodemon src/app.js",
     "sync": "node src/sync.js",
     "sync:preview": "node src/sync.js --dry-run",
+    "sync:moved": "node src/sync.js --moved",
+    "sync:moved:preview": "node src/sync.js --moved --dry-run",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

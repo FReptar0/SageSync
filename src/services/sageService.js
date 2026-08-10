@@ -81,6 +81,70 @@ class SageService {
         }
     }
 
+    /**
+     * CARGA DIARIA / DELTA — query ENVIADO POR SANTIAGO (2026-08-06), usado tal cual.
+     * Detecta "lo que se movió" vía ICIVAL (tabla de valuación): junta la valuación
+     * por item y filtra con HAVING MAX(AUDTDATE) >= fecha de corte.
+     *
+     * NOTAS / DEUDA (diferencias vs. la carga inicial — decisión de Yahir: dejarlo tal cual):
+     *  1. Stock = B.QTYONHAND (on-hand físico), NO el "disponible" que usa la carga
+     *     inicial (getAllInventoryItems). => la inicial y la diaria mandan a Fracttal
+     *     con criterios distintos; un item "salta" de disponible a on-hand al moverse.
+     *  2. La fecha '20260806' está QUEMADA (valor de prueba de Santiago). Para el
+     *     proceso automático hay que hacerla dinámica, p.ej.:
+     *       HAVING MAX(V.AUDTDATE) >= CONVERT(int, CONVERT(char(8), GETDATE(), 112))
+     *  3. Los filtros de familia (FSA + SEGMENT1) van QUEMADOS aquí; la carga inicial
+     *     los lee de config.json (inventoryFilters). Hoy coinciden; si cambian en
+     *     config, esta query NO los sigue.
+     *  4. Único ajuste vs. lo que mandó Santiago: ICIVAL calificado como
+     *     COPDAT.dbo.ICIVAL (el resto del código califica igual; sin prefijo puede
+     *     no resolver según DB_NAME y tronar).
+     */
+    async getMovedInventoryItems() {
+        try {
+            const query = `
+                SELECT
+                    I.FMTITEMNO     AS ItemNumber,
+                    I.[DESC]        AS Description,
+                    B.LOCATION      AS Location,
+                    B.QTYONHAND     AS QuantityOnHand,
+                    B.QTYMINREQ     AS MinimumStock,
+                    B.STDCOST       AS StandardCost,
+                    B.RECENTCOST    AS RecentCost,
+                    B.LASTCOST      AS LastCost
+                FROM COPDAT.dbo.ICILOC AS B
+                JOIN COPDAT.dbo.ICITEM AS I
+                    ON B.ITEMNO = I.ITEMNO
+                JOIN COPDAT.dbo.ICIVAL AS V
+                    ON V.ITEMNO = I.ITEMNO
+                WHERE I.INACTIVE  = 0
+                  AND I.STOCKITEM = 1
+                  AND B.LOCATION  = 'GRAL'
+                  AND I.ITEMBRKID = 'FSA'
+                  AND I.SEGMENT1 NOT IN ('001','002','004','005','006','018','019','035',
+                                         '048','049','052','053','060','104','106','107')
+                GROUP BY
+                    I.FMTITEMNO,
+                    I.[DESC],
+                    B.LOCATION,
+                    B.QTYONHAND,
+                    B.QTYMINREQ,
+                    B.STDCOST,
+                    B.RECENTCOST,
+                    B.LASTCOST
+                HAVING MAX(V.AUDTDATE) >= '20260806'
+                ORDER BY I.FMTITEMNO, B.LOCATION
+            `;
+            logger.info('Obteniendo items MOVIDOS de inventario desde Sage300 (carga diaria/delta - query de Santiago)...');
+            const result = await database.query(query);
+            logger.info(`Se obtuvieron ${result.recordset.length} items movidos de inventario`);
+            return result.recordset;
+        } catch (error) {
+            logger.error('Error obteniendo items movidos de inventario:', error);
+            throw error;
+        }
+    }
+
     async getInventoryItemsByLocation(location) {
         try {
             logger.info(`Obteniendo items de inventario para ubicación: ${location}`);
