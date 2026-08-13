@@ -94,9 +94,14 @@ class FracttalClient {
                     }
                 }
                 
-                // Log del error para debug
+                // Log del error para debug. Omitimos el 400 "ya asociado" porque se maneja
+                // de forma idempotente aguas arriba (associateItemToWarehouse) — no es una falla.
                 if (error.response) {
-                    console.error(`❌ Error HTTP ${error.response.status}:`, error.response.data);
+                    const bodyStr = JSON.stringify(error.response.data || '');
+                    const yaAsociado = error.response.status === 400 && /associated before/i.test(bodyStr);
+                    if (!yaAsociado) {
+                        console.error(`❌ Error HTTP ${error.response.status}:`, error.response.data);
+                    }
                 } else {
                     console.error(`❌ Error de red:`, error.message);
                 }

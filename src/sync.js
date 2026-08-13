@@ -31,18 +31,19 @@ async function runSync() {
             ? 'DRY-RUN COMPLETADO — revisar resumen y preview antes de un sync real'
             : 'SINCRONIZACIÓN COMPLETADA EXITOSAMENTE');
         logger.info('='.repeat(60));
-        // En dry-run, imprimir el preview compacto a stdout (los logs ya quedaron en Winston).
-        if (dryRun && summary && summary.preview) {
-            console.log('\n=== DRY-RUN PREVIEW ===');
-            console.log(JSON.stringify({
-                totalItems: summary.totalItems,
-                processedItems: summary.processedItems,
-                errors: summary.errors,
-                caseCounts: summary.caseCounts,
-                warehousesMissing: summary.warehousesMissing,
-                firstItems: summary.preview.slice(0, 5)
-            }, null, 2));
-            console.log(`(${summary.preview.length} items en el preview completo, mostrando primeros 5)`);
+        // Tabla de lo procesado (aplica tanto a dry-run como a sync real).
+        if (summary && Array.isArray(summary.preview) && summary.preview.length > 0) {
+            const { renderProcessedTable } = require('./utils/summaryTable');
+            console.log('\n' + (dryRun ? 'PREVIEW — items que se sincronizarian:' : 'Items sincronizados:'));
+            console.log(renderProcessedTable(summary.preview));
+            console.log(
+                `\nTotal: ${summary.processedItems} procesados  |  ` +
+                `Case A: ${summary.caseCounts.caseA}  B: ${summary.caseCounts.caseB}  C: ${summary.caseCounts.caseC}  |  ` +
+                `Errores: ${summary.errors}`
+            );
+            if (summary.warehousesMissing && summary.warehousesMissing.length > 0) {
+                console.log(`Almacenes faltantes (se crearian en modo real): ${summary.warehousesMissing.join(', ')}`);
+            }
         }
         process.exit(0);
     } catch (error) {
