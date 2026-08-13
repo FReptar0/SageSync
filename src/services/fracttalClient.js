@@ -468,6 +468,17 @@ class FracttalClient {
             logger.info(`Item ${code} asociado al almacén ${warehouseCode} exitosamente`);
             return response.data;
         } catch (error) {
+            // Idempotencia: si el item YA estaba asociado a este almacén, Fracttal responde
+            // con "...it was associated before...". NO es un error real: la detección de caso
+            // (checkItemExistsInWarehouse, vía /items/) a veces no ve la asociación existente
+            // y clasifica como Case B. Tratamos "ya asociado" como éxito para continuar al
+            // ajuste de stock (resultado equivalente a Case A).
+            // TODO: arreglo de fondo — que checkItemExistsInWarehouse use /inventories/{code}.
+            const msg = JSON.stringify(error.response?.data || error.message || '');
+            if (/associated before/i.test(msg)) {
+                logger.warn(`Item ${code} ya estaba asociado al almacén ${warehouseCode} — se omite la asociación y se continúa al ajuste`);
+                return { success: true, alreadyAssociated: true };
+            }
             logger.error('Error asociando item a almacén:', error.response?.data || error.message);
             throw error;
         }
