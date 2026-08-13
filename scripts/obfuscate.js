@@ -263,6 +263,8 @@ async function main() {
             'sync-only': pkg.scripts?.['sync-only'] || 'node src/app.js',
             sync: pkg.scripts?.sync || 'node src/sync.js',
             'sync:preview': pkg.scripts?.['sync:preview'] || 'node src/sync.js --dry-run',
+            'sync:moved': pkg.scripts?.['sync:moved'] || 'node src/sync.js --moved',
+            'sync:moved:preview': pkg.scripts?.['sync:moved:preview'] || 'node src/sync.js --moved --dry-run',
             maintenance: pkg.scripts?.maintenance || 'node src/maintenance.js',
             'maintenance:clean': pkg.scripts?.['maintenance:clean'] || 'node src/maintenance.js clean-logs',
             'maintenance:token': pkg.scripts?.['maintenance:token'] || 'node src/maintenance.js renew-token',
