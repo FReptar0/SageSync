@@ -90,9 +90,11 @@ class SageService {
      *  1. Stock = B.QTYONHAND (on-hand físico), NO el "disponible" que usa la carga
      *     inicial (getAllInventoryItems). => la inicial y la diaria mandan a Fracttal
      *     con criterios distintos; un item "salta" de disponible a on-hand al moverse.
-     *  2. La fecha '20260806' está QUEMADA (valor de prueba de Santiago). Para el
-     *     proceso automático hay que hacerla dinámica, p.ej.:
-     *       HAVING MAX(V.AUDTDATE) >= CONVERT(int, CONVERT(char(8), GETDATE(), 112))
+     *  2. Fecha de corte = HOY, dinámica (GETDATE() del server SQL): cada día trae
+     *     solo lo movido ese día. OJO: correcto SOLO si el sync corre el MISMO día
+     *     DESPUÉS del cierre de fin de día. Si el cron corriera pasada la medianoche,
+     *     se perdería lo del día anterior -> ahí habría que usar ventana (>= ayer).
+     *     El cron aún no está apuntado al delta.
      *  3. Los filtros de familia (FSA + SEGMENT1) van QUEMADOS aquí; la carga inicial
      *     los lee de config.json (inventoryFilters). Hoy coinciden; si cambian en
      *     config, esta query NO los sigue.
@@ -132,7 +134,7 @@ class SageService {
                     B.STDCOST,
                     B.RECENTCOST,
                     B.LASTCOST
-                HAVING MAX(V.AUDTDATE) >= '20260806'
+                HAVING MAX(V.AUDTDATE) >= CONVERT(int, CONVERT(char(8), GETDATE(), 112))  -- HOY, dinámico
                 ORDER BY I.FMTITEMNO, B.LOCATION
             `;
             logger.info('Obteniendo items MOVIDOS de inventario desde Sage300 (carga diaria/delta - query de Santiago)...');

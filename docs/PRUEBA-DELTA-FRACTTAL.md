@@ -77,10 +77,9 @@ WHERE I.INACTIVE = 0 AND I.STOCKITEM = 1 AND B.LOCATION = 'GRAL'
 
 ---
 
-## ⚠️ Importante: la fecha (para que Nivel 1 cuadre con Nivel 0)
-- El **código** (`getMovedInventoryItems` en `src/services/sageService.js`) usa `HAVING ... >= '20260806'` (fecha **quemada**, valor de prueba de Santi).
-- El **query de arriba** usa `@fechaCorte = hoy`.
-- Para que el Nivel 1 traiga **solo tu movimiento de hoy**, cambia en el código esa línea a la fecha de hoy (p.ej. `>= '20260813'`). Si la dejas en `'20260806'`, el sync traerá **todo lo movido desde el 6-ago**.
+## ✅ La fecha (ya resuelta)
+- El **código** ahora usa **HOY dinámico** (`GETDATE()` del server SQL): cada día trae solo lo movido ese día — igual que el `@fechaCorte = hoy` del query de arriba. Nivel 0 y Nivel 1 **cuadran sin cambios manuales**.
+- ⚠️ **Para el cron de producción:** esto es correcto solo si el sync corre el **mismo día, después del cierre**. Si el cron corriera pasada la medianoche, se perdería lo del día anterior — en ese caso habría que usar una ventana (p.ej. `>= ayer`). Definir el horario del cron es un pendiente.
 
 ---
 
