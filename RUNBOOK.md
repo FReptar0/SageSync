@@ -98,14 +98,14 @@ Get-Content logs\servy-stderr.log -Tail 50
 Lo que normalmente debes ver en `sagesync.log`:
 
 - `[LICENSE] License VALID. Expires: ...` cada validación.
-- `Sincronización programada: 0 2 * * *` al boot.
+- Al boot, con la receta de producción: `Sincronización programada: Completa: sin horario (manual) · Diaria: 0 12,16,23 * * * · Zona: America/Mexico_City` (consola / `servy-stdout.log`) y en este log `Sincronización DIARIA (delta) programada: "0 12,16,23 * * *" (zona America/Mexico_City)`.
 - En el cron: `RESUMEN DE SINCRONIZACIÓN` con totales y errores.
 
 ---
 
 ## 3. Correr un sync manual de emergencia
 
-Cuando el cron no corrió, o se necesita propagar un cambio puntual a Fracttal sin esperar las 2 AM.
+Cuando el cron no corrió, o se necesita propagar un cambio puntual a Fracttal sin esperar al siguiente horario programado (en producción la carga completa no tiene horario).
 
 ### Opción A — Vía API (dashboard o curl)
 
@@ -400,10 +400,17 @@ node src\maintenance.js backup-config
 
 ### 9.3 Detener el cron pero dejar el dashboard arriba
 
-No hay un toggle limpio para esto. Workarounds:
+Hay un toggle limpio: en `.env` poner `SYNC_CRON_SCHEDULE=off`, dejar `SYNC_DAILY_CRON_SCHEDULE` vacía (o en `off`) y reiniciar:
 
-- Cambiar `SYNC_CRON_SCHEDULE` a una expresión inválida o futura (e.g. `0 0 31 2 *` — 31 de febrero, no existe) y reiniciar.
-- O simplemente parar el servicio: `Stop-Service SageSync`.
+```powershell
+Restart-Service SageSync
+```
+
+El dashboard sigue arriba, no se programa ninguna carga y las cargas manuales siguen funcionando (botón del dashboard / `POST /api/sync`, `npm run sync`, `npm run sync:moved`). Al boot debe verse `Sincronización programada: Completa: sin horario (manual) · Diaria: sin horario (manual) · Zona: America/Mexico_City`.
+
+> **Importante:** poner una expresión cron inválida **ya NO sirve** como workaround. Desde este cambio, un valor inválido en `SYNC_CRON_SCHEDULE`, `SYNC_DAILY_CRON_SCHEDULE` o `SYNC_TIMEZONE` detiene el servicio al arrancar (exit 1; el motivo queda en `logs/servy-stderr.log`).
+
+Alternativa: parar el servicio por completo con `Stop-Service SageSync` (se cae también el dashboard).
 
 ### 9.4 Saltarse la verificación de licencia para troubleshooting (NO USAR EN PRODUCCIÓN)
 

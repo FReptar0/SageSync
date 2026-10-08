@@ -311,7 +311,9 @@ Todas viven en `.env` en la raíz. **`.env` está en `.gitignore` — nunca lo c
 | `FRACTTAL_OAUTH_URL` | fracttal | No | URL del endpoint OAuth | `https://one.fracttal.com/oauth/token` |
 | `FRACTTAL_CLIENT_ID` | fracttal | **Sí** | Client ID OAuth2 del tenant | — |
 | `FRACTTAL_CLIENT_SECRET` | fracttal | **Sí** | Client Secret OAuth2 del tenant | — |
-| `SYNC_CRON_SCHEDULE` | sync | No | Expresión cron | `0 2 * * *` (2 AM diario) |
+| `SYNC_CRON_SCHEDULE` | sync | No | Expresión cron de la carga COMPLETA; `off`/`false`/`none`/`disabled` = no se programa, solo manual | `0 2 * * *` (default) · producción `off` |
+| `SYNC_DAILY_CRON_SCHEDULE` | sync | No | Expresión cron de la carga DIARIA/delta (`syncInventoryMoved`); vacío u `off` = no se programa | producción `0 12,16,23 * * *` |
+| `SYNC_TIMEZONE` | sync | No | Zona horaria IANA de todos los crons | `America/Mexico_City` (default) |
 | `SYNC_TIMEOUT` | sync | No | Timeout HTTP para Fracttal en ms | `30000` |
 | `SYNC_ON_STARTUP` | sync | No | Si `true`, corre un sync al boot | `false` |
 | `SYNC_BATCH_SIZE` | sync | No | Tamaño de batch (informativo; no se usa hoy) | `100` |
@@ -322,7 +324,7 @@ Todas viven en `.env` en la raíz. **`.env` está en `.gitignore` — nunca lo c
 | `PORT` | server | No | Puerto del dashboard | `3000` |
 | `NODE_ENV` | server | No | `production` o `development` | `production` |
 
-El validador (`src/utils/validateEnv.js`) chequea solo los grupos `license`, `database`, `fracttal` y aborta el proceso si falta cualquiera de esas. Los demás tienen defaults razonables.
+El validador (`src/utils/validateEnv.js`) chequea solo los grupos `license`, `database`, `fracttal` y aborta el proceso si falta cualquiera de esas. Los demás tienen defaults razonables. Al arrancar también se validan `SYNC_CRON_SCHEDULE`, `SYNC_DAILY_CRON_SCHEDULE` y `SYNC_TIMEZONE`: un valor inválido aborta con exit 1 y un mensaje que nombra la variable.
 
 ---
 
