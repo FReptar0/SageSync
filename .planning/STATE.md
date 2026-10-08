@@ -5,7 +5,7 @@ milestone_name: null
 status: between-milestones
 stopped_at: 2026-05-15 — partial test-server validation (steps 0-5 green); steps 6-9 handed off to next owner via TEST-SERVER-PLAYBOOK.md
 last_updated: "2026-05-15T22:00:00.000Z"
-last_activity: 2026-05-15 — Test-server validation steps 0-5 complete; sync:preview verde con 9,114 items; issue #14 filed; playbook for steps 6-9 written
+last_activity: 2026-10-08 - Completed quick task 261008-jdr: Programar solo la carga diaria en el servicio (12, 16 y 23 h) y dejar la carga completa manual
 progress:
   total_phases: 0
   completed_phases: 0
@@ -46,6 +46,12 @@ Full decision log for v1.1 is preserved in `.planning/milestones/v1.1-ROADMAP.md
 
 - **CRITICAL — issue #13 (2026-05-15):** `PUT /inventories_adjustment/` returns HTTP 400 on warehouses with `external_integration: true`. COZAMIN 1 in prod has this flag. **Sync entirely fails against COZAMIN 1 as currently designed.** Mitigation applied to `config.json` (default for new warehouses now `false`) but does NOT resolve COZAMIN 1. Two paths: (A) operational — Tersoft + client change flag in Fracttal UI; (B) technical — refactor sync to entries/exits delta (backlog 999.3). Must resolve before any prod deploy. See `docs/NEXT-STEPS.md` § D5 + Fase 0.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261008-jdr | Programar solo la carga diaria en el servicio (12, 16 y 23 h) y dejar la carga completa manual | 2026-10-08 | d122022 | [261008-jdr-programar-solo-la-carga-diaria-en-el-ser](./quick/261008-jdr-programar-solo-la-carga-diaria-en-el-ser/) |
+
 ### Deferred Items (acknowledged at v1.1 close)
 
 | Category | Item | Status |
@@ -69,3 +75,4 @@ Resume file: None
 - **2026-08-07** — Fracttal delta: integrado el query que devolvió Santiago **tal cual** en `sageService.getMovedInventoryItems()` (delta vía `COPDAT.dbo.ICIVAL` + `GROUP BY`/`HAVING MAX(AUDTDATE)`). Decisión de Yahir: usar on-hand (`QTYONHAND`) como lo mandó Santi, aunque la carga inicial usa disponible (inconsistencia aceptada, a vigilar en Fracttal). Deudas documentadas en código: fecha quemada `'20260806'`, filtros de familia quemados, verificar `AUDTDATE` de ICIVAL. Único ajuste propio: calificar ICIVAL con `COPDAT.dbo.`. Sin commit aún.
 - **2026-08-13** — Fracttal delta: fecha de corte hecha **dinámica** (HOY vía `GETDATE()`) en `getMovedInventoryItems()`, reemplazando la quemada `'20260806'` (a petición de Yahir: cada día sincroniza lo de ese día). Añadido runbook de prueba self-contained `docs/PRUEBA-DELTA-FRACTTAL.md` (embebe el SQL para el server de test, porque el `.sql` de `data/` está gitignoreado). Rama `feat/fracttal-carga-diaria-delta` pusheada (commits d2718f2, 7fb5ec9, + fecha dinámica). Pendiente prod: apuntar el cron al delta y timearlo después del cierre.
 - **2026-08-13 (validación E2E)** — Delta probado en server de test (`ZCL-RDS-TEST`, dist ofuscado). Santi+Yahir movieron 4 items en Sage → el delta los detectó exacto y calculó el stock nuevo (+1). Bug pre-existente destapado: `checkItemExistsInWarehouse` (vía `GET /items/{code}`) no ve asociaciones existentes → items ya cargados se clasifican Case B y `associateItemToWarehouse` truena "already associated". Fix `1d7efdc`: associate idempotente (trata "associated before" como éxito → sigue al ajuste). Re-corrida: **0 errores, 4 items ajustados** (`PUT /inventories_adjustment/` OK → SAGESYNC-TEST no tiene el problema #13). Delta validado E2E. Pendiente limpieza: arreglo de fondo de detección (usar `/inventories/{code}`) para clasificar Case A y quitar la llamada/log de asociación redundante.
+- **2026-10-08 (quick 261008-jdr)** — El servicio (Servy → `node src/main.js`) ahora programa solo la carga DIARIA/delta: nueva `SYNC_DAILY_CRON_SCHEDULE`, `SYNC_CRON_SCHEDULE=off` apaga la carga completa (queda manual: botón del dashboard o `npm run sync`), `SYNC_TIMEZONE` (default America/Mexico_City, refs #3) en cada cron, validación al arrancar (exit 1 con mensaje en español). Corregido: `src/app.js` registraba un cron extra de carga completa al ser importado por main.js/sync.js (`start()` sin guard `require.main`); el modo headless ya no se encima (refs #9); el botón manual ya no tumba el servicio si la carga falla. Producción: `SYNC_CRON_SCHEDULE=off`, `SYNC_DAILY_CRON_SCHEDULE=0 12,16,23 * * *`, `SYNC_TIMEZONE=America/Mexico_City`, `SYNC_ON_STARTUP=false`. Suite: 11 suites / 142 tests verdes.
