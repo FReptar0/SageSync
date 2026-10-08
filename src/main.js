@@ -1,17 +1,18 @@
 const express = require('express');
 const path = require('path');
-const cron = require('node-cron');
 
 // License gate -- must run before any service initialization
 const { validateEnv } = require('./utils/validateEnv');
-const { validate: validateLicense, isValid } = require('./services/LicenseValidator');
+const { validate: validateLicense } = require('./services/LicenseValidator');
 
 // Configuración y servicios
 const config = require('./config/server');
+const { describeSyncSchedules } = require('./config/schedules');
 const logger = require('./config/logger');
 const SageService = require('./services/sageService');
 const FracttalClient = require('./services/fracttalClient');
 const SyncStateManager = require('./services/syncStateManager');
+const { registerSyncSchedules } = require('./services/syncScheduler');
 
 // Rutas y middleware
 const apiRoutes = require('./routes');
@@ -20,6 +21,20 @@ const { runSyncWithTracking } = require('./controllers/syncController');
 
 // Validate environment variables first (exits on missing vars)
 validateEnv();
+
+// Horarios inválidos (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE):
+// abortar aquí, antes del gate de licencia y de cualquier cron.schedule (node-cron
+// lanza excepción con valores como "off"). console.error igual que validateEnv: el
+// transporte de archivo de winston puede no escribir antes del exit, y bajo Servy
+// stderr queda en logs/servy-stderr.log.
+if (config.syncSchedules.errors.length > 0) {
+    console.error('[CONFIG ERROR] Horarios de sincronización inválidos:');
+    for (const error of config.syncSchedules.errors) {
+        console.error('  - ' + error);
+    }
+    console.error('Corrige el .env y reinicia el servicio.');
+    process.exit(1);
+}
 
 let app;
 
@@ -52,28 +67,15 @@ async function startServer() {
     app.locals.sage = sage;
     app.locals.fracttal = fracttal;
     app.locals.syncStateManager = syncStateManager;
-    app.locals.cronSchedule = config.syncSchedule;
+    // Descripción de una línea de los horarios; el dashboard la muestra como sync.schedule
+    const scheduleDescription = describeSyncSchedules(config.syncSchedules);
+    app.locals.cronSchedule = scheduleDescription;
 
-    // Programar sincronización automática
-    console.log(`Sincronización programada: ${config.syncSchedule}`);
-    cron.schedule(config.syncSchedule, async () => {
-        try {
-            // LIC-02: Re-validate license on each cron cycle (periodic, no startup flag)
-            await validateLicense();
-            if (!isValid()) {
-                logger.warn('License invalid — skipping scheduled sync');
-                return;
-            }
-            if (!syncStateManager.isInProgress()) {
-                console.log('\nEjecutando sincronización programada...');
-                await runSyncWithTracking(syncStateManager);
-            } else {
-                logger.warn('Sincronización programada saltada - ya hay una en progreso');
-            }
-        } catch (error) {
-            logger.error('Error en sincronización programada:', error);
-        }
-    });
+    // Programar sincronización automática: un cron por tipo de carga habilitado
+    // (COMPLETA / DIARIA delta), con zona horaria explícita (SYNC_TIMEZONE).
+    // Cada tick revalida la licencia (LIC-02) y se salta si ya hay una en progreso.
+    console.log(`Sincronización programada: ${scheduleDescription}`);
+    registerSyncSchedules(config.syncSchedules, syncStateManager);
 
     // Rutas principales
     app.get('/', (req, res) => {
@@ -91,7 +93,7 @@ async function startServer() {
         console.log('\n' + '='.repeat(60));
         console.log('SageSync Server iniciado exitosamente!');
         console.log(`Dashboard disponible en: http://localhost:${config.port}`);
-        console.log(`Sincronización programada: ${config.syncSchedule}`);
+        console.log(`Sincronización programada: ${scheduleDescription}`);
         console.log('='.repeat(60));
 
         logger.info(`SageSync Server iniciado en puerto ${config.port}`);

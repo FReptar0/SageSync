@@ -1,5 +1,6 @@
 const { asyncHandler } = require('../middleware/errorHandler');
-const { syncInventory } = require('../app');
+const { syncInventory, syncInventoryMoved } = require('../app');
+const { SYNC_MODE_LABELS } = require('../config/schedules');
 const logger = require('../config/logger');
 
 const manualSync = asyncHandler(async (req, res) => {
@@ -13,8 +14,10 @@ const manualSync = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Ejecutar sincronización en background
-        runSyncWithTracking(syncStateManager);
+        // Ejecutar sincronización en background (carga COMPLETA manual).
+        // El error ya queda en el log y en el historial dentro de runSyncWithTracking;
+        // el .catch evita un unhandledRejection que tumbaría el servicio (Node 18).
+        runSyncWithTracking(syncStateManager).catch(() => {});
 
         res.json({
             message: 'Sincronización iniciada',
@@ -76,26 +79,32 @@ const getSyncHistory = asyncHandler(async (req, res) => {
     });
 });
 
-// Función auxiliar para ejecutar sincronización con tracking
-async function runSyncWithTracking(syncStateManager) {
+// Función auxiliar para ejecutar sincronización con tracking.
+// mode 'full' (default) = carga COMPLETA (syncInventory): botón del dashboard y SYNC_ON_STARTUP.
+// mode 'daily' = carga DIARIA/delta (syncInventoryMoved): cron programado (syncScheduler).
+async function runSyncWithTracking(syncStateManager, { mode = 'full' } = {}) {
+    const syncMode = mode === 'daily' ? 'daily' : 'full';
+    const label = SYNC_MODE_LABELS[syncMode];
     const startTime = syncStateManager.startSync();
     
     try {
-        console.log('\n🔄 Iniciando sincronización...');
-        logger.info('Iniciando sincronización');
+        console.log(`\n🔄 Iniciando sincronización ${label}...`);
+        logger.info(`Iniciando sincronización ${label}`);
         
-        const result = await syncInventory();
+        const result = syncMode === 'daily'
+            ? await syncInventoryMoved()
+            : await syncInventory();
         
-        syncStateManager.endSync({ success: true, data: result }, startTime);
+        syncStateManager.endSync({ success: true, data: result, mode: syncMode }, startTime);
         
-        console.log('✅ Sincronización completada exitosamente');
-        logger.info('Sincronización completada exitosamente');
+        console.log(`✅ Sincronización ${label} completada exitosamente`);
+        logger.info(`Sincronización ${label} completada exitosamente`);
         
     } catch (error) {
-        syncStateManager.endSync({ success: false, error: error.message }, startTime);
+        syncStateManager.endSync({ success: false, error: error.message, mode: syncMode }, startTime);
         
-        console.error('❌ Error en sincronización:', error.message);
-        logger.error('Error en sincronización:', error);
+        console.error(`❌ Error en sincronización ${label}:`, error.message);
+        logger.error(`Error en sincronización ${label}:`, error);
         
         throw error;
     }

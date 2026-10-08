@@ -1,8 +1,9 @@
 require('dotenv').config();
+const { resolveSyncSchedules } = require('./schedules');
 
 module.exports = {
     port: process.env.PORT || 3000,
-    syncSchedule: process.env.SYNC_CRON_SCHEDULE || '0 2 * * *',
+    syncSchedules: resolveSyncSchedules(process.env),
     syncOnStartup: process.env.SYNC_ON_STARTUP === 'true',
     logs: {
         maxLines: parseInt(process.env.LOG_MAX_LINES) || 10000,
