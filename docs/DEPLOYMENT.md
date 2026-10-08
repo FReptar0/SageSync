@@ -78,7 +78,12 @@ FRACTTAL_CLIENT_ID=<client ID de Fracttal del cliente>
 FRACTTAL_CLIENT_SECRET=<client secret de Fracttal del cliente>
 
 # ====== SINCRONIZACIÓN ======
-SYNC_CRON_SCHEDULE=0 2 * * *
+# Carga COMPLETA: no se programa; se corre a mano (dashboard o npm run sync)
+SYNC_CRON_SCHEDULE=off
+# Carga DIARIA/delta: a las 12:00, 16:00 y 23:00
+SYNC_DAILY_CRON_SCHEDULE=0 12,16,23 * * *
+# Zona horaria de todos los horarios
+SYNC_TIMEZONE=America/Mexico_City
 SYNC_BATCH_SIZE=100
 SYNC_TIMEOUT=30000
 SYNC_ON_STARTUP=false
@@ -93,6 +98,13 @@ LOG_MAX_FILES=5
 PORT=3000
 NODE_ENV=production
 ```
+
+**Horarios de sincronización:**
+
+- `SYNC_CRON_SCHEDULE` (carga COMPLETA): vacía = `0 2 * * *` (comportamiento anterior); `off`, `false`, `none` o `disabled` = no se programa. La carga completa siempre se puede correr a mano con el botón de sincronizar del dashboard (`POST /api/sync`) o con `npm run sync`.
+- `SYNC_DAILY_CRON_SCHEDULE` (carga DIARIA/delta): vacía u `off` = no se programa. Solo toma lo que se movió hoy.
+- `SYNC_TIMEZONE`: zona horaria IANA, default `America/Mexico_City`, independiente de la zona horaria del Windows Server.
+- Cualquier valor inválido hace que el servicio NO arranque (exit 1); el mensaje nombra la variable y el valor (ver `logs/servy-stderr.log`).
 
 ---
 
@@ -162,7 +174,7 @@ node src/main.js
 [LICENSE] Valid -- expires ...
 🚀 SageSync Server iniciado exitosamente!
 📍 Dashboard disponible en: http://localhost:3000
-📅 Sincronización programada: 0 2 * * *
+📅 Sincronización programada: Completa: sin horario (manual) · Diaria: 0 12,16,23 * * * · Zona: America/Mexico_City
 ```
 
 **Si falla:**
@@ -262,24 +274,25 @@ Verificar en Fracttal que el stock del item cambió al valor nuevo.
 
 ### 9c. Probar con cron automático
 
-Cambiar temporalmente el schedule en `.env`:
+Cambiar temporalmente los horarios en `.env` para probar la carga DIARIA programada:
 
 ```ini
-# Cada 5 minutos para pruebas
-SYNC_CRON_SCHEDULE=*/5 * * * *
+# Carga completa sin horario; carga diaria cada 5 minutos para pruebas
+SYNC_CRON_SCHEDULE=off
+SYNC_DAILY_CRON_SCHEDULE=*/5 * * * *
 ```
 
 ```powershell
 node src/main.js
 ```
 
-1. Modificar otro item en Sage300
+1. Modificar otro item en Sage300 (la carga diaria solo toma los items movidos HOY)
 2. Esperar ~5 minutos
 3. Verificar en Fracttal que cambió
-4. **Restaurar** el schedule al horario deseado:
+4. **Restaurar** el horario de producción:
 
 ```ini
-SYNC_CRON_SCHEDULE=0 2 * * *
+SYNC_DAILY_CRON_SCHEDULE=0 12,16,23 * * *
 ```
 
 ---

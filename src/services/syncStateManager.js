@@ -38,7 +38,9 @@ class SyncStateManager {
             success: result.success,
             timestamp: startTime.toISOString(),
             duration: duration,
-            ...(result.success ? result.data : { error: result.error })
+            ...(result.success ? result.data : { error: result.error }),
+            // Tipo de carga ('full' | 'daily') para el historial, solo si se indicó
+            ...(result.mode ? { mode: result.mode } : {})
         };
 
         if (result.success) {

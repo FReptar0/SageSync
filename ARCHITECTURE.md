@@ -59,7 +59,8 @@ Sync runs on a cron schedule (default `0 2 * * *` — 2 AM daily) and can also b
 | `database.js` | MSSQL connection pool singleton | `query(text, params)`, `testConnection()`, `connect()`, `disconnect()` |
 | `license.js` | Reads `LICENSE_API_URL`, `HMAC_SECRET`, `SAGESYNC_API_KEY` from env | `{ apiUrl, hmacSecret, apiKey }` |
 | `logger.js` | Winston singleton with rotation + JSON format | `info`, `warn`, `error`, `debug` |
-| `server.js` | Reads `PORT`, `SYNC_CRON_SCHEDULE`, `SYNC_ON_STARTUP`, log/pagination defaults | `{ port, syncSchedule, syncOnStartup, logs, pagination }` |
+| `schedules.js` | Pure resolver for the sync schedules. `SYNC_CRON_SCHEDULE` (full load): empty → `0 2 * * *`, `off`/`false`/`none`/`disabled` → not scheduled. `SYNC_DAILY_CRON_SCHEDULE` (daily/delta load): empty or an off-value → not scheduled. `SYNC_TIMEZONE`: default `America/Mexico_City`. Invalid values are returned in `errors` (Spanish) and the entry points exit 1 | `resolveSyncSchedules(env)`, `describeSyncSchedules(schedules)`, `SYNC_MODE_LABELS` |
+| `server.js` | Reads `PORT`, `SYNC_ON_STARTUP`, log/pagination defaults; resolves `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE` through `schedules.js` | `{ port, syncSchedules: { full, daily, timezone, errors }, syncOnStartup, logs, pagination }` |
 
 ### `src/middleware/`
 
@@ -86,7 +87,7 @@ All routers are mounted at `/api`. The order matters: `requireLicense` wraps eve
 | File | Owns |
 |------|------|
 | `systemController.js` | `/api/status` (composite health), `/api/test/connections` |
-| `syncController.js` | `/api/sync` (kicks off background sync), `/api/sync/status`, `/api/sync/history`. Exports `runSyncWithTracking(syncStateManager)` used by the cron in `main.js` |
+| `syncController.js` | `/api/sync` (kicks off a background full load), `/api/sync/status`, `/api/sync/history`. Exports `runSyncWithTracking(syncStateManager, { mode })`: `'full'` (default) runs `syncInventory`, `'daily'` runs `syncInventoryMoved`; the history records the mode. Used by `syncScheduler` and `SYNC_ON_STARTUP` |
 | `sageController.js` | `/api/sage/*` — stats + paginated inventory reads |
 | `fracttalController.js` | `/api/fracttal/warehouses` — passes through |
 | `logsController.js` | `/api/logs*` — date filtering, stats, debug `/api/logs/test` |
@@ -99,6 +100,7 @@ All routers are mounted at `/api`. The order matters: `requireLicense` wraps eve
 | `sageService.js` | MSSQL queries against `COPDAT.dbo.ICILOC ⋈ ICITEM`. Filters `INACTIVE=0 AND STOCKITEM=1 AND LOCATION='GRAL'` in the default query. Exports `getAllInventoryItems`, `getInventoryItemsByLocation`, `getInventoryItemByCode`, `getUniqueLocations`, `getInventoryStats`, `mapSageLocationToFracttalWarehouse`, `transformToFracttalFormat`, `validateConnection`, `getConnectionInfo` |
 | `fracttalClient.js` | Axios-based REST client + OAuth2 lifecycle + token persistence. ~30 methods. Critical group: `createInventoryWithWarehouse`, `associateItemToWarehouse`, `adjustInventoryStock`, `getWarehouseStock`, `getItemInventory`, `createWarehouseEntry`, `createWarehouseExit`, `checkItemExistsInWarehouse`, `ensureWarehouseExists`, `createWarehouse` |
 | `syncStateManager.js` | In-memory state of sync execution (inProgress, stats, lastResult, history of last 10). Exported as a class, instantiated once in `main.js` and stored on `app.locals.syncStateManager` |
+| `syncScheduler.js` | One node-cron task per enabled load (full / daily) with `{ timezone }`. Each tick runs a periodic `validate()`, skips if the license is invalid or a sync is in progress, otherwise calls `runSyncWithTracking(sm, { mode })`. Exports `registerSyncSchedules`, `runScheduledSync`. Never required by `app.js` (require cycle) |
 
 ### `src/utils/`
 
@@ -112,7 +114,7 @@ All routers are mounted at `/api`. The order matters: `requireLicense` wraps eve
 Boot sequence (top-to-bottom):
 
 1. Require deps & config.
-2. `validateEnv()` → exits if any required env var missing.
+2. `validateEnv()` → exits if any required env var missing. Then exits 1 if `config.syncSchedules.errors` is non-empty (invalid `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE`).
 3. `startServer()`:
    1. `validateLicense({ startup: true })` — retries 3× with backoff, exits on failure.
    2. Build Express app.
@@ -120,7 +122,7 @@ Boot sequence (top-to-bottom):
    4. Mount `requireLicense` wrapper that exempts `/api/system/license`.
    5. Mount `express.static(public/)`.
    6. Instantiate `SageService`, `FracttalClient`, `SyncStateManager` and attach to `app.locals`.
-   7. Schedule cron: each tick re-validates license (no exit on failure, just skip), then calls `runSyncWithTracking()` if not already in progress.
+   7. `registerSyncSchedules(config.syncSchedules, syncStateManager)`: one cron per enabled load (full / daily) with `{ timezone }`. Each tick re-validates license (no exit on failure, just skip), then calls `runSyncWithTracking(sm, { mode })` if not already in progress.
    8. Mount `/` → static `index.html`, `/api` → all routers.
    9. Mount `errorHandler` (must be last).
    10. `app.listen(port)`.
@@ -129,7 +131,7 @@ Boot sequence (top-to-bottom):
 
 ### `src/app.js` — Sync orchestrator + standalone cron
 
-Same `validateEnv` + `validateLicense` startup as `main.js`, but **no Express**. Exports `syncInventory()` which:
+Runs `validateEnv()` at load like `main.js`, but **no Express**; the startup `validateLicense` gate only runs in headless mode (below). Exports `syncInventory()` which:
 
 1. Re-validates license (periodic, no startup retries).
 2. `configManager.validateConfig()`.
@@ -138,7 +140,7 @@ Same `validateEnv` + `validateLicense` startup as `main.js`, but **no Express**.
 5. For each item: map location → warehouse → ensure warehouse exists → check item existence → apply one of three cases (see §3.4).
 6. Return summary `{ totalItems, processedItems, updatedItems, createdItems, errors, warehousesCreated }`.
 
-Also has a `start()` that schedules a cron + runs `syncInventory()` directly when invoked as `require.main === module`. This is what `npm run sync-only` triggers.
+Also has a `start()` that runs only when `require.main === module` (`npm run sync-only`). It resolves the schedules (exit 1 if invalid), runs the startup license gate, registers the full/daily crons with the timezone behind a module-level in-progress flag (runs never overlap), then runs one immediate full `syncInventory()`. Requiring `app.js` (from `main.js` via `syncController`, or from `sync.js`) schedules nothing. `_startHeadless` is a test-only export of `start`.
 
 ### `src/sync.js` — One-shot CLI
 
@@ -344,4 +346,4 @@ These were either discovered the hard way or are deliberate. Read them before ch
 - **Pre-existing failing test.** `tests/services/fracttalClient.test.js > updateWarehouseItem` expects the deprecated `/items/{code}` path. It fails today because the implementation correctly calls `/inventories_adjustment/{code}`. **The test is wrong**; fix it to match the new path, not the other way around. See `.planning/phases/02-enforcement-surface/deferred-items.md`.
 - **`config.json` is environment-shaped data, not secret.** It is committed because it serves as a sane default for the example mapping (`GRAL → ALM-AMP`). For real deployments, `setup-automap.js` overwrites it. Do not put credentials in there.
 - **`logsRoutes.js` mounts at `/api/api/logs*` because it prefixes `/api/` inside the router and the router itself is mounted under `/api`.** This is a legacy oversight. `systemRoutes.js` exposes the proper `/api/logs*` path. Either way works; don't break the legacy path without checking the frontend.
-- **There are two cron schedulers.** One in `main.js` (Express server) and one in `app.js` (standalone). Whichever process you run, exactly one cron runs. If you run both processes against the same `.env` you'll get double syncs.
+- **There are two cron schedulers, one per entry point.** `main.js` (Express server) registers through `syncScheduler` (guarded by `SyncStateManager`); `app.js` registers its own only when run directly (`npm run sync-only`, guarded by a module-level in-progress flag). Until 2026-10, merely requiring `app.js` (from `main.js` via `syncController`, or from `sync.js`) also registered an extra, unguarded full-load cron in every process; that is fixed. If you run both processes against the same `.env` you'll get double syncs.

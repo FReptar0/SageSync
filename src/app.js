@@ -5,6 +5,9 @@ const { validate: validateLicense, isValid } = require('./services/LicenseValida
 const SageService = require('./services/sageService');
 const FracttalClient = require('./services/fracttalClient');
 const ConfigManager = require('./config/configManager');
+// Horarios del modo headless. NUNCA requerir ./services/syncScheduler aquí:
+// syncScheduler → syncController → app sería un require circular.
+const { resolveSyncSchedules, SYNC_MODE_LABELS } = require('./config/schedules');
 const cron = require('node-cron');
 const logger = require('./config/logger');
 require('dotenv').config();
@@ -544,20 +547,76 @@ async function syncInventoryMoved(options = {}) {
     }
 }
 
-async function start() {
-    // LIC-01 + ENF-03: Startup license gate with retry + exit logic
-    await validateLicense({ startup: true });
-    // Programar tarea para ejecutarse todos los días a las 2am
-    cron.schedule(process.env.SYNC_CRON_SCHEDULE || '0 2 * * *', syncInventory);
-    if (require.main === module) {
-        syncInventory();
+// Modo headless: las corridas nunca se enciman (issue #9). Si un cron dispara
+// mientras otra sincronización sigue corriendo, esa corrida se salta.
+let headlessSyncInProgress = false;
+
+// Corre una carga en modo headless ('daily' = DIARIA/delta, otro = COMPLETA).
+// Nunca rechaza: el error se registra en el log.
+async function runHeadlessSync(mode) {
+    const label = SYNC_MODE_LABELS[mode === 'daily' ? 'daily' : 'full'];
+    if (headlessSyncInProgress) {
+        logger.warn(`Sincronización ${label} saltada - ya hay una en progreso`);
+        return;
+    }
+    headlessSyncInProgress = true;
+    try {
+        if (mode === 'daily') {
+            await syncInventoryMoved();
+        } else {
+            await syncInventory();
+        }
+    } catch (error) {
+        logger.error(`Error en sincronización ${label} (modo headless):`, error);
+    } finally {
+        headlessSyncInProgress = false;
     }
 }
 
-start().catch((err) => {
-    logger.error('Fatal startup error:', err);
-    process.exit(1);
-});
+async function start() {
+    // Horarios (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE): si alguno
+    // es inválido, abortar antes de cualquier llamada de red o cron (mismo mensaje que main.js).
+    const schedules = resolveSyncSchedules(process.env);
+    if (schedules.errors.length > 0) {
+        console.error('[CONFIG ERROR] Horarios de sincronización inválidos:');
+        for (const error of schedules.errors) {
+            console.error('  - ' + error);
+        }
+        console.error('Corrige el .env y reinicia el servicio.');
+        process.exit(1);
+    }
 
-// Exportar para uso manual si es necesario
-module.exports = { syncInventory, syncInventoryMoved };
+    // LIC-01 + ENF-03: Startup license gate with retry + exit logic.
+    // Va ANTES de registrar cualquier cron o de correr cualquier sincronización.
+    await validateLicense({ startup: true });
+
+    // Un cron por tipo de carga habilitado, con zona horaria explícita (issue #3)
+    for (const mode of ['full', 'daily']) {
+        const label = SYNC_MODE_LABELS[mode];
+        const expression = schedules[mode];
+        if (expression) {
+            cron.schedule(expression, () => runHeadlessSync(mode), { timezone: schedules.timezone });
+            logger.info(`Sincronización ${label} programada: "${expression}" (zona ${schedules.timezone})`);
+        } else {
+            logger.info(`Sincronización ${label}: sin horario programado (solo manual)`);
+        }
+    }
+
+    // Corrida COMPLETA inmediata al arrancar (comportamiento de siempre del modo headless)
+    await runHeadlessSync('full');
+}
+
+// Solo `node src/app.js` (npm run sync-only) arranca el modo headless. Un require('./app')
+// desde main.js (vía syncController) o desde sync.js no programa nada; antes de este
+// cambio registraba un cron extra de carga completa, sin guarda, en cada proceso.
+if (require.main === module) {
+    start().catch((err) => {
+        logger.error('Fatal startup error:', err);
+        process.exit(1);
+    });
+}
+
+// Exportar para uso manual si es necesario.
+// _startHeadless existe SOLO para tests: nunca llamarlo desde main.js ni sync.js,
+// porque registraría crons duplicados.
+module.exports = { syncInventory, syncInventoryMoved, _startHeadless: start };
