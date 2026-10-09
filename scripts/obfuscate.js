@@ -271,8 +271,8 @@ async function main() {
             'maintenance:clean': pkg.scripts?.['maintenance:clean'] || 'node src/maintenance.js clean-logs',
             'maintenance:token': pkg.scripts?.['maintenance:token'] || 'node src/maintenance.js renew-token',
             'maintenance:backup': pkg.scripts?.['maintenance:backup'] || 'node src/maintenance.js backup-config',
-            'install-service': pkg.scripts?.['install-service'] || 'node src/service-installer.js install',
-            'uninstall-service': pkg.scripts?.['uninstall-service'] || 'node src/service-installer.js uninstall',
+            'install-service': pkg.scripts?.['install-service'] || 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-service.ps1',
+            'uninstall-service': pkg.scripts?.['uninstall-service'] || 'servy-cli uninstall --name=SageSync',
             // QA scripts — tests/ se copia al dist
             test: pkg.scripts?.test || 'jest',
             'test:fracttal': pkg.scripts?.['test:fracttal'] || 'jest tests/services/fracttalClient.test.js',

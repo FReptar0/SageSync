@@ -295,7 +295,7 @@ cd E:\SageSync
 
 El script viene en el dist (`scripts\install-service.ps1`). Sin `-InstallDir` usa la carpeta padre de `scripts\`, es decir, la carpeta de instalación desde la que se ejecuta.
 
-> **No uses `npm run install-service`:** apunta al instalador de node-windows (`src/service-installer.js`), no a Servy, y ese archivo no está en el repo, así que falla. El servicio se instala solo con `.\scripts\install-service.ps1`.
+> `npm run install-service` hace lo mismo (ejecuta este script con PowerShell, también como Administrador) y `npm run uninstall-service` desinstala el servicio con Servy (`servy-cli uninstall --name=SageSync`).
 
 Parámetros opcionales:
 
