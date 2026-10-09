@@ -55,7 +55,7 @@ Sync runs on a cron schedule (default `0 2 * * *` — 2 AM daily) and can also b
 
 | File | Purpose | Public surface |
 |------|---------|----------------|
-| `configManager.js` | Loads `config.json` (Sage → Fracttal location mapping), persists `.fracttal-token` | `getLocationMapping`, `getAllLocationMappings`, `getDefaultWarehouse`, `getSyncSettings`, `getWarehouseCreationSettings`, `saveToken`, `loadToken`, `clearToken`, `validateConfig` |
+| `configManager.js` | Loads the Sage → Fracttal location mapping from `CONFIG_PATH` (absolute, or relative to the project root, never the cwd) or, when unset or blank, from `config.json`. A `CONFIG_PATH` file that does not exist throws, with no fallback. Calls `dotenv.config()` itself so every entry point honors `.env`; `saveConfig()` writes the active file. Persists `.fracttal-token` | `configPath` (active absolute path), `getLocationMapping`, `getAllLocationMappings`, `getDefaultWarehouse`, `getSyncSettings`, `getWarehouseCreationSettings`, `saveToken`, `loadToken`, `clearToken`, `validateConfig` |
 | `database.js` | MSSQL connection pool singleton | `query(text, params)`, `testConnection()`, `connect()`, `disconnect()` |
 | `license.js` | Reads `LICENSE_API_URL`, `HMAC_SECRET`, `SAGESYNC_API_KEY` from env | `{ apiUrl, hmacSecret, apiKey }` |
 | `logger.js` | Winston singleton with rotation + JSON format | `info`, `warn`, `error`, `debug` |
@@ -243,7 +243,8 @@ State machine (in `LicenseValidator.cachedState.state`):
 | LicenseValidator cache | Process memory | No | `cachedState`. Reset on restart; re-populated at startup gate. |
 | `SyncStateManager` | Process memory | No | Last 10 sync summaries. Reset on restart. |
 | `logs/sagesync.log`, `logs/error.log` | Filesystem | Yes (rotated) | Winston, 10MB × 5 files. |
-| `config.json` | Filesystem | Yes | Sage→Fracttal mapping. Edited by `setup-automap.js` or manually. |
+| `config.json` | Filesystem | Yes | Template/default Sage→Fracttal mapping, used when `CONFIG_PATH` is unset. Every dist deploy overwrites it. |
+| `config.local.json` (`CONFIG_PATH`) | Filesystem (install dir) | Yes | Per-server mapping. Gitignored in source and dist, so deploys never touch it. Read at startup, so an edit needs a service restart. |
 | `.env` | Filesystem | Yes | Secrets. Never committed. |
 
 ---
@@ -312,13 +313,14 @@ Setup file `tests/setup.js` mocks the Winston logger globally and sets `jest.set
 
 ### 7.1. Obfuscation pipeline
 
-- `scripts/obfuscate.js` — copies the project into `dist/`, obfuscates every `.js` under `src/`, leaves `public/`, `package.json`, `config.json` etc. unmodified. Strips `devDependencies` and trims `scripts` to production-only.
+- `scripts/obfuscate.js` — copies the project into `dist/`, obfuscates every `.js` under `src/`, leaves `public/`, `package.json`, `config.json`, `scripts/install-service.ps1` etc. unmodified (no other file under `scripts/` is shipped). Strips `devDependencies` and trims `scripts` to production-only. The generated dist `.gitignore` ignores `.env` and `config.local.json`, so both survive `git reset --hard` deploys.
 - `.github/workflows/obfuscate-deploy.yml` — triggers on push to `src/**`, `public/**`, `package.json`, `package-lock.json`. Runs the script and force-pushes `dist/` to the dist repo on the same branch name.
 - Target repo: `FReptar0/SageSync-dist`. Secret required: `OBFUSCATED_REPO_TOKEN` (PAT with `repo` scope).
 
 ### 7.2. Windows service via Servy
 
 - `scripts/install-service.ps1` — idempotent install. Pre-flight checks Admin + Servy + Node + `src/main.js` presence; aborts gracefully if service already exists. Configures Servy with: `startupType=Automatic`, heartbeat 30s, max 3 failed checks → restart, max 5 restart attempts, size rotation 10MB × 5, stop timeout 30s.
+- Ships in the dist. `-InstallDir` defaults to the parent of the script's folder (the install dir when run as `.\scripts\install-service.ps1` from it).
 - Optional params: `-InstallDir`, `-NodePath`, `-ServiceName`, `-Port`.
 - Logs:
   - `logs/servy-stdout.log` + `logs/servy-stderr.log` (Servy-captured stdio)
@@ -326,7 +328,7 @@ Setup file `tests/setup.js` mocks the Winston logger globally and sets `jest.set
 
 ### 7.3. Auto-mapping setup script
 
-- `scripts/setup-automap.js` — first-time deployment helper. Connects to Sage300, lists active locations with stock, proposes a Fracttal warehouse code per location (`{prefix}-{cleanLocation}` by default `ALM-{code}`), authenticates against Fracttal, creates missing warehouses, writes `config.json`. Supports `--dry-run`.
+- `scripts/setup-automap.js` — first-time deployment helper. Connects to Sage300, lists active locations with stock, proposes a Fracttal warehouse code per location (`{prefix}-{cleanLocation}` by default `ALM-{code}`), authenticates against Fracttal, creates missing warehouses, writes `config.json`. Supports `--dry-run`. Source checkouts only: it is not shipped in the dist, ignores `CONFIG_PATH` and is not run in production.
 
 ---
 
@@ -344,6 +346,6 @@ These were either discovered the hard way or are deliberate. Read them before ch
 - **`requireLicense` exemption for `/api/system/license` is in `main.js`, not in the middleware.** The middleware is single-responsibility and only knows how to return 503. The wrapper in `main.js` is the integration point. Don't move it without re-reading the integration test.
 - **The frontend banner z-index is 1050 and overlay is 1049.** The banner stays visible above the dimming overlay so the message is always readable. The expiry badge only renders for `VALID` state within 30 days of `expiresAt`.
 - **Pre-existing failing test.** `tests/services/fracttalClient.test.js > updateWarehouseItem` expects the deprecated `/items/{code}` path. It fails today because the implementation correctly calls `/inventories_adjustment/{code}`. **The test is wrong**; fix it to match the new path, not the other way around. See `.planning/phases/02-enforcement-surface/deferred-items.md`.
-- **`config.json` is environment-shaped data, not secret.** It is committed because it serves as a sane default for the example mapping (`GRAL → ALM-AMP`). For real deployments, `setup-automap.js` overwrites it. Do not put credentials in there.
+- **`config.json` is the committed template/default mapping (`GRAL → ALM-AMP`), not the production mapping.** On dist servers every `git reset --hard` deploy overwrites it, so the real mapping lives in `config.local.json`, selected by `CONFIG_PATH`. A `CONFIG_PATH` pointing to a missing file stops boot instead of falling back to `config.json`. `setup-automap.js` writes `config.json` (it ignores `CONFIG_PATH`) and is for source checkouts only. Do not put credentials in there.
 - **`logsRoutes.js` mounts at `/api/api/logs*` because it prefixes `/api/` inside the router and the router itself is mounted under `/api`.** This is a legacy oversight. `systemRoutes.js` exposes the proper `/api/logs*` path. Either way works; don't break the legacy path without checking the frontend.
 - **There are two cron schedulers, one per entry point.** `main.js` (Express server) registers through `syncScheduler` (guarded by `SyncStateManager`); `app.js` registers its own only when run directly (`npm run sync-only`, guarded by a module-level in-progress flag). Until 2026-10, merely requiring `app.js` (from `main.js` via `syncController`, or from `sync.js`) also registered an extra, unguarded full-load cron in every process; that is fixed. If you run both processes against the same `.env` you'll get double syncs.
