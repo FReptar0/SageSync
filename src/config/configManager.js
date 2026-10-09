@@ -1,10 +1,22 @@
 const fs = require('fs');
 const path = require('path');
+// Carga el .env aquí también para que CONFIG_PATH aplique en todos los entry points
+// sin importar el orden de los require; no pisa variables ya definidas.
+require('dotenv').config();
 const logger = require('./logger');
 
 class ConfigManager {
     constructor() {
-        this.configPath = path.join(__dirname, '../../config.json');
+        // CONFIG_PATH = archivo de mapeo de este servidor; relativo a la raíz del proyecto, no al cwd.
+        const configPathEnv = (process.env.CONFIG_PATH || '').trim();
+        this.configPathFromEnv = configPathEnv !== '';
+        if (this.configPathFromEnv) {
+            this.configPath = path.isAbsolute(configPathEnv)
+                ? configPathEnv
+                : path.resolve(__dirname, '../..', configPathEnv);
+        } else {
+            this.configPath = path.join(__dirname, '../../config.json');
+        }
         this.tokenPath = path.join(__dirname, '../../.fracttal-token');
         this.config = null;
         this.loadConfig();
@@ -15,7 +27,12 @@ class ConfigManager {
             if (fs.existsSync(this.configPath)) {
                 const configData = fs.readFileSync(this.configPath, 'utf8');
                 this.config = JSON.parse(configData);
-                logger.info('Configuración cargada exitosamente desde config.json');
+                logger.info(`Configuración cargada exitosamente desde ${this.configPath}`);
+            } else if (this.configPathFromEnv) {
+                // Sin respaldo a config.json: el mapeo del repo nunca debe usarse por accidente.
+                const message = `CONFIG_PATH apunta a un archivo que no existe: ${this.configPath}. Crea ese archivo (copia de config.json con el mapeo de este servidor) o corrige CONFIG_PATH en el .env; no se usa config.json como respaldo.`;
+                logger.error(message);
+                throw new Error(message);
             } else {
                 logger.error('Archivo config.json no encontrado');
                 throw new Error('Archivo config.json no encontrado');

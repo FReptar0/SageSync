@@ -84,7 +84,7 @@ Si algo falla, salta a las secciones específicas.
 node src/maintenance.js
 ```
 
-Muestra: limpieza de logs, validación de `config.json`, estado del token OAuth, info de sistema, presencia de archivos críticos.
+Muestra: limpieza de logs, validación de la configuración activa (`config.local.json` si `CONFIG_PATH` está definida, si no `config.json`), estado del token OAuth, info de sistema, presencia de archivos críticos (la lista muestra la ruta del archivo de configuración activo).
 
 ### 2.5 Logs
 
@@ -98,6 +98,7 @@ Get-Content logs\servy-stderr.log -Tail 50
 Lo que normalmente debes ver en `sagesync.log`:
 
 - `[LICENSE] License VALID. Expires: ...` cada validación.
+- Al boot, con `CONFIG_PATH`: `Configuración cargada exitosamente desde E:\SageSync\config.local.json` (en este log JSON las `\` salen dobles). Si dice `config.json`, falta `CONFIG_PATH` en el `.env`.
 - Al boot, con la receta de producción: `Sincronización programada: Completa: sin horario (manual) · Diaria: 0 12,16,23 * * * · Zona: America/Mexico_City` (consola / `servy-stdout.log`) y en este log `Sincronización DIARIA (delta) programada: "0 12,16,23 * * *" (zona America/Mexico_City)`.
 - En el cron: `RESUMEN DE SINCRONIZACIÓN` con totales y errores.
 
@@ -311,8 +312,8 @@ Patrones comunes:
 | Error en logs | Significa | Acción |
 |---------------|-----------|--------|
 | `Item sin código o ubicación válida` | Fila en Sage300 con `ITEMNO=null` o `LOCATION=null` | Limpiar datos en Sage; los items se saltan, no detienen el sync |
-| `Ubicación X no soportada` | No hay entry en `config.json` para esa ubicación | Editar `config.json` agregando el mapeo, o re-correr `scripts/setup-automap.js` |
-| `Error asegurando que el almacén X existe` | Fracttal rechazó crear el almacén | Crear manualmente en UI de Fracttal o ajustar `warehouseCreationSettings` en `config.json` |
+| `Ubicación X no soportada` | No hay entry en el archivo de mapeo activo para esa ubicación | Agregar el mapeo en el archivo activo (`config.local.json` en servidores con `CONFIG_PATH`; nunca `config.json` en un servidor del dist) y reiniciar el servicio |
+| `Error asegurando que el almacén X existe` | Fracttal rechazó crear el almacén | Crear manualmente en UI de Fracttal o ajustar `warehouseCreationSettings` en el archivo de mapeo activo (`config.local.json` o `config.json`) |
 | Items individuales con 400/500 de Fracttal | Datos inválidos en Sage (e.g. `LastCost` negativo) | Cada item se trata como aislado; revisar el item en cuestión |
 
 ### 7.5 El servicio se reinicia constantemente
@@ -327,6 +328,7 @@ Get-Content logs\servy-stderr.log -Tail 100
 Causas más frecuentes:
 
 - `.env` incompleto → `validateEnv()` aborta con la lista de variables faltantes.
+- `CONFIG_PATH apunta a un archivo que no existe: <ruta>` → crear `config.local.json` (copia de `config.json`, ver `docs/DEPLOYMENT.md` Paso 4) o corregir `CONFIG_PATH`.
 - Licencia inválida en startup → tras 3 reintentos `process.exit(1)`.
 - Puerto 3000 ya en uso por otra app — cambiar `PORT` en `.env`.
 - Path de `src/main.js` movido — reinstalar servicio.
@@ -377,6 +379,18 @@ npm install --production
 Start-Service SageSync
 ```
 
+`git reset --hard` solo reescribe los archivos versionados. `.env` y `config.local.json` están ignorados por git y sobreviven la actualización, mientras que `config.json` vuelve a la versión del repo; por eso el mapeo de producción vive en `config.local.json`.
+
+> **Nunca uses `git clean -x`:** borraría `.env`, `config.local.json`, `logs/` y los demás archivos ignorados.
+
+Para confirmar qué archivo de mapeo cargó el servicio después del `Start-Service`:
+
+```powershell
+Select-String -Path logs\sagesync.log -Pattern "cargada exitosamente desde" | Select-Object -Last 1
+```
+
+La línea debe mencionar `config.local.json`. El patrón va sin acentos a propósito: Windows PowerShell 5.1 puede leer mal los acentos de un log UTF-8 sin BOM. En el log JSON las diagonales invertidas salen dobles (`E:\\SageSync\\config.local.json`).
+
 Si la actualización tocó env vars nuevas, edita `.env` antes de `Start-Service`. Backup recomendado antes:
 
 ```powershell
@@ -396,6 +410,7 @@ Sin tocar el servidor: **marcar la licencia como `active: false`** en el dashboa
 ```powershell
 node src\maintenance.js backup-config
 # Crea backups/config-backup-{ISO_TIMESTAMP}.json
+# Copia el archivo de mapeo activo (config.local.json si hay CONFIG_PATH, si no config.json); la salida muestra cuál
 ```
 
 ### 9.3 Detener el cron pero dejar el dashboard arriba

@@ -80,6 +80,8 @@ NODE_ENV=production
 
 El archivo `config.json` ya está preconfigurado para usar solo ubicación GRAL:
 
+> **En servidores desplegados desde el dist no edites `config.json`:** cada deploy lo sobrescribe. Cópialo a `config.local.json`, edita solo esa copia y pon `CONFIG_PATH=config.local.json` en el `.env` (detalle en `docs/DEPLOYMENT.md` del repo fuente, Paso 4).
+
 ```json
 {
   "locationMapping": {

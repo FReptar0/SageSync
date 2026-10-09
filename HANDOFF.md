@@ -158,7 +158,7 @@ Resumen ejecutivo:
 3. `git clone https://github.com/FReptar0/SageSync-dist.git E:\SageSync` (el repo **dist** es código ofuscado).
 4. `npm install --production`.
 5. Crear `.env` con credenciales del cliente.
-6. `node scripts/setup-automap.js` — descubre ubicaciones de Sage300, crea almacenes en Fracttal, genera `config.json`.
+6. `Copy-Item config.json config.local.json`, editar el mapeo de este servidor SOLO en `config.local.json` y poner `CONFIG_PATH=config.local.json` en `.env`. `setup-automap.js` no viene en el dist y crea almacenes en Fracttal: no se corre en producción.
 7. Validación manual: `node src/main.js`, verificar dashboard y `/api/system/license`.
 8. Probar kill switch (desactivar licencia, ver banner rojo).
 9. Carga inicial: `node src/sync.js`.
@@ -213,7 +213,7 @@ El código fuente de SageSync **no se entrega al cliente**. En cada push a `main
 
 1. Hace checkout del repo.
 2. Corre `node scripts/obfuscate.js` (ver script para el detalle de opciones de `javascript-obfuscator`).
-3. Copia `package.json`, `public/`, `config.json` (sin .env) y la carpeta `src/` ofuscada a `dist/`.
+3. Copia `package.json`, `public/`, `config.json` (sin .env), `scripts/install-service.ps1` y la carpeta `src/` ofuscada a `dist/`. El `.gitignore` del dist ignora `.env` y `config.local.json`.
 4. Pushea `dist/` a la rama `main` del repo `FReptar0/SageSync-dist` con `--force`.
 
 **Repo destino:** `https://github.com/FReptar0/SageSync-dist`.
@@ -278,8 +278,8 @@ npm run test:credentials   # Validar OAuth funciona
 | `src/utils/validateEnv.js` | Valida env vars al arranque (3 grupos: license, db, fracttal) | Mantén la lista alineada con `.env.example` |
 | `src/utils/logParser.js` | Parser de logs winston para el dashboard | OK editar |
 | `public/index.html` | Dashboard completo, 1 archivo HTML+CSS+JS | Banner z-index 1050, overlay 1049, polling 60s |
-| `config.json` | Mapeo ubicación Sage → almacén Fracttal + reglas especiales | Se genera por `setup-automap.js` |
-| `scripts/setup-automap.js` | Auto-discovery + auto-creación de almacenes + generador de `config.json` | Solo se corre una vez por despliegue |
+| `config.json` | Mapeo ubicación Sage → almacén Fracttal + reglas especiales | En servidores del dist cada deploy lo sobrescribe: el mapeo real va en `config.local.json` (`CONFIG_PATH`) |
+| `scripts/setup-automap.js` | Auto-discovery + auto-creación de almacenes + generador de `config.json` | No viene en el dist ni se corre en producción (crea almacenes en Fracttal); solo checkouts de código |
 | `scripts/install-service.ps1` | Instalador del Windows Service vía Servy | Idempotente; requiere Admin |
 | `scripts/obfuscate.js` | Build de distribución (copia + ofusca + opcionalmente pushea) | El workflow de Actions lo invoca |
 | `.github/workflows/obfuscate-deploy.yml` | CI que pushea a `SageSync-dist` | Necesita secreto `OBFUSCATED_REPO_TOKEN` |
@@ -311,6 +311,7 @@ Todas viven en `.env` en la raíz. **`.env` está en `.gitignore` — nunca lo c
 | `FRACTTAL_OAUTH_URL` | fracttal | No | URL del endpoint OAuth | `https://one.fracttal.com/oauth/token` |
 | `FRACTTAL_CLIENT_ID` | fracttal | **Sí** | Client ID OAuth2 del tenant | — |
 | `FRACTTAL_CLIENT_SECRET` | fracttal | **Sí** | Client Secret OAuth2 del tenant | — |
+| `CONFIG_PATH` | config | No | Archivo de mapeo Sage→Fracttal de ESTE servidor en lugar de `config.json`; ruta relativa a la carpeta de instalación o absoluta. Si está definida y el archivo no existe, SageSync no arranca (nunca cae a `config.json`) | producción `config.local.json` · vacío = `config.json` |
 | `SYNC_CRON_SCHEDULE` | sync | No | Expresión cron de la carga COMPLETA; `off`/`false`/`none`/`disabled` = no se programa, solo manual | `0 2 * * *` (default) · producción `off` |
 | `SYNC_DAILY_CRON_SCHEDULE` | sync | No | Expresión cron de la carga DIARIA/delta (`syncInventoryMoved`); vacío u `off` = no se programa | producción `0 12,16,23 * * *` |
 | `SYNC_TIMEZONE` | sync | No | Zona horaria IANA de todos los crons | `America/Mexico_City` (default) |

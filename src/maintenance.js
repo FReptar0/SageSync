@@ -136,7 +136,8 @@ class MaintenanceScript {
             // Verificar archivos críticos
             const criticalFiles = [
                 'package.json',
-                'config.json',
+                // Archivo de configuración activo: CONFIG_PATH o config.json
+                this.configManager.configPath,
                 '.env',
                 'src/app.js',
                 'src/services/fracttalClient.js',
@@ -145,7 +146,7 @@ class MaintenanceScript {
 
             console.log('   - Archivos críticos:');
             for (const file of criticalFiles) {
-                const exists = fs.existsSync(path.join(this.rootDir, file));
+                const exists = fs.existsSync(path.resolve(this.rootDir, file));
                 console.log(`     ${exists ? '✅' : '❌'} ${file}`);
             }
 
@@ -187,10 +188,11 @@ class MaintenanceScript {
                 fs.mkdirSync(backupDir, { recursive: true });
             }
             
-            // Copiar archivo de configuración
-            const configPath = path.join(this.rootDir, 'config.json');
+            // Copiar el archivo de configuración activo (CONFIG_PATH o config.json)
+            const configPath = this.configManager.configPath;
             fs.copyFileSync(configPath, backupPath);
             
+            console.log(`   - Archivo origen: ${configPath}`);
             console.log(`   ✅ Backup creado: ${backupName}`);
             
         } catch (error) {

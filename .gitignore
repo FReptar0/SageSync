@@ -172,6 +172,8 @@ tests/integration/real-api-test.js
 .env.production
 .env.staging
 .env.development
+# Mapeo de almacenes por servidor (CONFIG_PATH): vive solo en el servidor
+config.local.json
 
 # Directorios de datos sensibles
 data/

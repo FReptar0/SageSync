@@ -77,6 +77,10 @@ FRACTTAL_OAUTH_URL=https://one.fracttal.com/oauth/token
 FRACTTAL_CLIENT_ID=<client ID de Fracttal del cliente>
 FRACTTAL_CLIENT_SECRET=<client secret de Fracttal del cliente>
 
+# ====== MAPEO DE ALMACENES ======
+# Mapeo de ESTE servidor, fuera de git: los deploys no lo tocan (ver Paso 4)
+CONFIG_PATH=config.local.json
+
 # ====== SINCRONIZACIÓN ======
 # Carga COMPLETA: no se programa; se corre a mano (dashboard o npm run sync)
 SYNC_CRON_SCHEDULE=off
@@ -106,58 +110,40 @@ NODE_ENV=production
 - `SYNC_TIMEZONE`: zona horaria IANA, default `America/Mexico_City`, independiente de la zona horaria del Windows Server.
 - Cualquier valor inválido hace que el servicio NO arranque (exit 1); el mensaje nombra la variable y el valor (ver `logs/servy-stderr.log`).
 
+**Mapeo de almacenes:**
+
+- `CONFIG_PATH` es el archivo de mapeo que se usa en lugar de `config.json`: relativo a la carpeta de instalación o ruta absoluta, escrito sin comillas.
+- Si `CONFIG_PATH` está definida y el archivo no existe, el servicio NO arranca; nunca cae a `config.json`. El archivo se crea en el Paso 4.
+
 ---
 
-## Paso 4: Auto-Setup (Descubrir Sage300 + Crear Almacenes en Fracttal + Generar config.json)
+## Paso 4: Mapeo de almacenes de este servidor (`config.local.json`)
 
-Este script se conecta a Sage300, descubre todas las ubicaciones con inventario, crea los almacenes en Fracttal, y genera `config.json` automáticamente.
+En un servidor desplegado desde `SageSync-dist`, cada actualización (`git reset --hard`) regresa `config.json` a la versión del repo. El mapeo real de este servidor vive en `config.local.json`: git lo ignora y los deploys nunca lo tocan. SageSync lo usa porque el `.env` tiene `CONFIG_PATH=config.local.json` (Paso 3).
 
-### 4a. Primero ver qué encontraría (sin crear nada)
+### 4a. Crear `config.local.json`
 
 ```powershell
 cd E:\SageSync
-node scripts/setup-automap.js --dry-run
+Copy-Item config.json config.local.json
 ```
 
-Muestra:
-- Tabla con todas las ubicaciones de Sage300
-- Cantidad de items y stock por ubicación
-- Mapeos propuestos (ej: `GRAL` → `ALM-GRAL`)
-- El `config.json` que generaría
+### 4b. Editar el mapeo (solo en `config.local.json`)
 
-### 4b. Ejecutar el setup real
+Abrir `E:\SageSync\config.local.json` y verificar:
+- Todas las ubicaciones de Sage300 están mapeadas en `locationMapping`, a los códigos reales de los almacenes en el Fracttal del cliente
+- Las direcciones (`warehouseConfig`) son las del cliente
+- **Cuidado:** la plantilla mapea `GRAL` → `ALM-AMP` (y `TEST` → `TEST001`), y con `warehouseCreationSettings.enabled: true` (el valor de la plantilla) SageSync crea cualquier almacén mapeado que no exista. Si se deja así, crearía `ALM-AMP` en el Fracttal del cliente y sincronizaría ahí.
 
-```powershell
-node scripts/setup-automap.js --state "Zacatecas" --city "Morelos" --country "México"
-```
+> **Nunca edites `config.json` en el servidor:** el siguiente deploy lo sobrescribe y el servicio sincronizaría con el mapeo del repo.
 
-Ajustar `--state`, `--city` y `--country` según la ubicación del cliente.
+> **Si una ubicación de Sage300 no tiene mapeo en `config.local.json`, sus items se saltan durante la sincronización con un warning en logs.**
 
-**Lo que hace:**
-1. Conecta a Sage300 → descubre ubicaciones con inventario activo
-2. Muestra tabla y propone mapeos → pide confirmación
-3. Se autentica con Fracttal
-4. Crea cada almacén en Fracttal (salta si ya existe)
-5. Genera `config.json` con todos los mapeos
+Cada cambio posterior a `config.local.json` requiere `Restart-Service SageSync`: el mapeo se lee al arrancar.
 
-**Opciones disponibles:**
+### 4c. `setup-automap.js` no se usa en producción
 
-| Flag | Descripción | Default |
-|------|-------------|---------|
-| `--dry-run` | Solo muestra, no crea nada | — |
-| `--prefix ALM` | Prefijo para códigos de almacén | `ALM` |
-| `--state` | Estado para los almacenes | vacío |
-| `--city` | Ciudad para los almacenes | vacío |
-| `--country` | País | `México` |
-
-### 4c. Revisar config.json
-
-Abrir `E:\SageSync\config.json` y verificar:
-- Todas las ubicaciones de Sage300 están mapeadas
-- Los códigos de almacén son correctos
-- Las direcciones son las del cliente (ajustar si es necesario)
-
-> **Si una ubicación de Sage300 no tiene mapeo en config.json, sus items se saltan durante la sincronización con un warning en logs.**
+`scripts/setup-automap.js` crea almacenes en Fracttal y escribe `config.json` (no `config.local.json`). No viene en el dist y **no** se ejecuta en producción. Para checkouts del código fuente, ver `ARCHITECTURE.md` §7.3.
 
 ---
 
@@ -213,7 +199,7 @@ Detener con `Ctrl+C` después de verificar.
 
 ## Paso 8: Carga Inicial del Inventario
 
-Los almacenes ya fueron creados por el auto-setup (paso 4). Ahora cargar los items.
+Con el mapeo de `config.local.json` revisado (Paso 4), cargar los items.
 
 ### 8a. Ejecutar la sincronización manual
 
@@ -307,6 +293,10 @@ cd E:\SageSync
 .\scripts\install-service.ps1
 ```
 
+El script viene en el dist (`scripts\install-service.ps1`). Sin `-InstallDir` usa la carpeta padre de `scripts\`, es decir, la carpeta de instalación desde la que se ejecuta.
+
+> **No uses `npm run install-service`:** apunta al instalador de node-windows (`src/service-installer.js`), no a Servy, y ese archivo no está en el repo, así que falla. El servicio se instala solo con `.\scripts\install-service.ps1`.
+
 Parámetros opcionales:
 
 ```powershell
@@ -387,7 +377,8 @@ servy-cli uninstall --name=SageSync
 |---------|--------|:-:|
 | Todo en `SageSync-dist` | `git clone` | No |
 | `.env` | Crear manualmente | **Sí** |
-| `config.json` | Auto-generado por setup | No |
+| `config.json` | Viene en el dist (plantilla; cada deploy lo sobrescribe) | No |
+| `config.local.json` | Copia de `config.json` editada en este servidor (Paso 4); git la ignora | No |
 | `node_modules/` | `npm install` | No |
 | `logs/` | Se crea automáticamente | No |
 
@@ -454,6 +445,7 @@ Get-Content E:\SageSync\logs\servy-stderr.log -Tail 100
 
 # Causas comunes:
 # - .env incompleto → falla al validar env vars
+# - CONFIG_PATH apunta a un archivo que no existe → crear config.local.json (Paso 4)
 # - Licencia expirada → falla al arrancar
 # - SQL Server caído → error de conexión
 ```
@@ -469,9 +461,8 @@ Get-Content E:\SageSync\logs\servy-stderr.log -Tail 100
 - [ ] Repo clonado y `npm install --production`
 
 ### Configuración
-- [ ] `.env` creado con todas las variables
-- [ ] Auto-setup ejecutado (`node scripts/setup-automap.js`)
-- [ ] `config.json` generado y revisado
+- [ ] `.env` creado con todas las variables (incluye `CONFIG_PATH=config.local.json`)
+- [ ] `config.local.json` creado (copia de `config.json`) y mapeo revisado; `config.json` sin tocar
 - [ ] Licencia registrada en servidor de licencias
 
 ### Validación de Licencia
@@ -493,5 +484,6 @@ Get-Content E:\SageSync\logs\servy-stderr.log -Tail 100
 
 ### Servicio
 - [ ] Servy instalado y servicio corriendo
+- [ ] Log de arranque con `Configuración cargada exitosamente desde ...config.local.json`
 - [ ] Reinicio del servidor probado (servicio arranca solo)
 - [ ] Logs de Servy y aplicación sin errores
