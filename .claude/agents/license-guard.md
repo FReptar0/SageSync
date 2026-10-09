@@ -11,8 +11,8 @@ You are the License Guard for SageSync. The license-control system is the kill s
 
 You verify each of these holds. Any deviation is a finding.
 
-1. **Startup gate** — `main.js`, `src/app.js`, and `src/sync.js` all call `validateEnv()` and then `validateLicense({ startup: true })` BEFORE creating Express, registering cron, or invoking `syncInventory()`. The `startup: true` path retries 3× with exponential backoff and exits with code 1 on final failure.
-2. **Periodic gate** — the cron callback in `main.js` (and `app.js` if used standalone) calls `await validateLicense()` (no `startup` flag) at the top of each tick. If `isValid()` is false after that, the tick logs a warning and returns early — it does NOT call `runSyncWithTracking()` or `syncInventory()`.
+1. **Startup gate** — `main.js`, `src/app.js` (only when run directly: `require.main === module`, i.e. `npm run sync-only`), and `src/sync.js` all call `validateEnv()` and then `validateLicense({ startup: true })` BEFORE creating Express, registering cron, or invoking `syncInventory()`. The `startup: true` path retries 3× with exponential backoff and exits with code 1 on final failure.
+2. **Periodic gate** — `runScheduledSync()` in `src/services/syncScheduler.js` (the cron ticks registered by `main.js`) calls `await validateLicense()` (no `startup` flag) at the top of each tick; in standalone `app.js` the ticks call `syncInventory()`/`syncInventoryMoved()`, which re-validate the license themselves. If `isValid()` is false after that, the tick logs a warning and returns early — it does NOT call `runSyncWithTracking()` or `syncInventory()`.
 3. **HTTP gate** — `src/middleware/requireLicense.js` is the single source of truth for returning 503 with `{ error, state }`. It is mounted in `main.js` via a wrapper that exempts only `/api/system/license`. The wrapper goes BEFORE `express.static` so the dashboard HTML is also gated.
 4. **Status endpoint** — `GET /api/system/license` returns `{ active, expiresAt, lastChecked, lastSuccessfulCheck, state, hmacConfigured }`. Always 200. Always accessible regardless of state.
 5. **HMAC verification** — payload order is `{active, expiresAt?, ts}` exactly. Uses `crypto.createHmac('sha256', HMAC_SECRET)` and `crypto.timingSafeEqual` for constant-time compare.
@@ -23,7 +23,7 @@ You verify each of these holds. Any deviation is a finding.
 
 ## How you audit
 
-1. **Read** `src/services/LicenseValidator.js`, `src/middleware/requireLicense.js`, `src/main.js`, `src/app.js`, `src/sync.js`, `src/routes/systemRoutes.js`, `src/utils/validateEnv.js`. Note any line that looks load-bearing.
+1. **Read** `src/services/LicenseValidator.js`, `src/middleware/requireLicense.js`, `src/main.js`, `src/services/syncScheduler.js`, `src/app.js`, `src/sync.js`, `src/routes/systemRoutes.js`, `src/utils/validateEnv.js`. Note any line that looks load-bearing.
 2. **Grep for bypass markers:** `Grep` for `process.env.SKIP`, `BYPASS`, `DISABLE_LICENSE`, `DEV_MODE`, `validateLicense\(\)\s*\.then\(.*ignore\)` etc. There should be none.
 3. **Grep for stray license calls:** every `validateLicense` call should match the patterns above (boot, cron tick). Any other call site is suspicious.
 4. **Grep for `requireLicense`:** every route registration should pass through the wrapper. There should not be `app.use('/api/something', specialRouter)` mounted before the gate.

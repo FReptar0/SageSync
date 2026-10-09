@@ -49,7 +49,7 @@ If localhost:3000 is not responding, the service may be down or not installed. R
 
 ### 6. Configuration sanity
 
-- Read `config.json` and confirm `locationMapping` has at least one entry and `defaultWarehouse.code` is set.
+- Read the active mapping file — the one named by `CONFIG_PATH` in `.env` (e.g. `config.local.json`, relative to the install dir), or `config.json` if `CONFIG_PATH` is unset — and confirm `locationMapping` has at least one entry and `defaultWarehouse.code` is set. On a production server deployed from the dist, `CONFIG_PATH` must be set (deploys overwrite `config.json`); flag it if it is not.
 - Confirm `.fracttal-token` is in `.gitignore` (grep `.gitignore` for the literal string).
 
 ### 7. Maintenance script (optional, takes ~5s)
