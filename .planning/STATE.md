@@ -5,7 +5,7 @@ milestone_name: null
 status: between-milestones
 stopped_at: 2026-05-15 — partial test-server validation (steps 0-5 green); steps 6-9 handed off to next owner via TEST-SERVER-PLAYBOOK.md
 last_updated: "2026-05-15T22:00:00.000Z"
-last_activity: 2026-10-08 - Completed quick task 261008-jdr: Programar solo la carga diaria en el servicio (12, 16 y 23 h) y dejar la carga completa manual
+last_activity: 2026-10-09 - Completed quick task 261008-on6: Configuracion de almacenes por servidor fuera de git e install-service.ps1 en el dist
 progress:
   total_phases: 0
   completed_phases: 0
@@ -51,6 +51,8 @@ Full decision log for v1.1 is preserved in `.planning/milestones/v1.1-ROADMAP.md
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261008-jdr | Programar solo la carga diaria en el servicio (12, 16 y 23 h) y dejar la carga completa manual | 2026-10-08 | d122022 | [261008-jdr-programar-solo-la-carga-diaria-en-el-ser](./quick/261008-jdr-programar-solo-la-carga-diaria-en-el-ser/) |
+| 261008-on6 | Configuracion de almacenes por servidor fuera de git e install-service.ps1 en el dist | 2026-10-09 | 66ce494 | [261008-on6-configuracion-de-almacenes-por-servidor-](./quick/261008-on6-configuracion-de-almacenes-por-servidor-/) |
+| fast | npm run install-service / uninstall-service usan Servy (apuntaban a src/service-installer.js, que no existe) | 2026-10-09 | 67da3ac | — |
 
 ### Deferred Items (acknowledged at v1.1 close)
 
@@ -76,3 +78,4 @@ Resume file: None
 - **2026-08-13** — Fracttal delta: fecha de corte hecha **dinámica** (HOY vía `GETDATE()`) en `getMovedInventoryItems()`, reemplazando la quemada `'20260806'` (a petición de Yahir: cada día sincroniza lo de ese día). Añadido runbook de prueba self-contained `docs/PRUEBA-DELTA-FRACTTAL.md` (embebe el SQL para el server de test, porque el `.sql` de `data/` está gitignoreado). Rama `feat/fracttal-carga-diaria-delta` pusheada (commits d2718f2, 7fb5ec9, + fecha dinámica). Pendiente prod: apuntar el cron al delta y timearlo después del cierre.
 - **2026-08-13 (validación E2E)** — Delta probado en server de test (`ZCL-RDS-TEST`, dist ofuscado). Santi+Yahir movieron 4 items en Sage → el delta los detectó exacto y calculó el stock nuevo (+1). Bug pre-existente destapado: `checkItemExistsInWarehouse` (vía `GET /items/{code}`) no ve asociaciones existentes → items ya cargados se clasifican Case B y `associateItemToWarehouse` truena "already associated". Fix `1d7efdc`: associate idempotente (trata "associated before" como éxito → sigue al ajuste). Re-corrida: **0 errores, 4 items ajustados** (`PUT /inventories_adjustment/` OK → SAGESYNC-TEST no tiene el problema #13). Delta validado E2E. Pendiente limpieza: arreglo de fondo de detección (usar `/inventories/{code}`) para clasificar Case A y quitar la llamada/log de asociación redundante.
 - **2026-10-08 (quick 261008-jdr)** — El servicio (Servy → `node src/main.js`) ahora programa solo la carga DIARIA/delta: nueva `SYNC_DAILY_CRON_SCHEDULE`, `SYNC_CRON_SCHEDULE=off` apaga la carga completa (queda manual: botón del dashboard o `npm run sync`), `SYNC_TIMEZONE` (default America/Mexico_City, refs #3) en cada cron, validación al arrancar (exit 1 con mensaje en español). Corregido: `src/app.js` registraba un cron extra de carga completa al ser importado por main.js/sync.js (`start()` sin guard `require.main`); el modo headless ya no se encima (refs #9); el botón manual ya no tumba el servicio si la carga falla. Producción: `SYNC_CRON_SCHEDULE=off`, `SYNC_DAILY_CRON_SCHEDULE=0 12,16,23 * * *`, `SYNC_TIMEZONE=America/Mexico_City`, `SYNC_ON_STARTUP=false`. Suite: 11 suites / 142 tests verdes.
+- **2026-10-09 (quick 261008-on6 + fast)** — Mapeo de almacenes por servidor fuera de git: `CONFIG_PATH` (relativo a la raíz; si el archivo no existe, el servicio no arranca y NUNCA usa `config.json` del repo como respaldo), `config.local.json` ignorado en repo y dist, `maintenance:backup` respalda el archivo activo. El dist ahora incluye `scripts/install-service.ps1` (InstallDir por defecto = carpeta de instalación) y `npm run install-service`/`uninstall-service` usan Servy. Producción: copiar `config.json` → `config.local.json`, editar solo esa copia y `CONFIG_PATH=config.local.json` en `.env`. Suite: 11 suites / 150 tests verdes.
