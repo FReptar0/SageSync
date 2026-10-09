@@ -9,8 +9,11 @@
 
     Servy manages: auto-start on boot, restart on crash, log rotation, health monitoring.
 
+    This script ships in the SageSync-dist package under scripts\.
+
 .PARAMETER InstallDir
-    Directory where SageSync is deployed. Default: E:\SageSync
+    Directory where SageSync is deployed. Default: the parent of this script's folder,
+    i.e. the install dir when run as .\scripts\install-service.ps1 from it (e.g. E:\SageSync).
 
 .PARAMETER NodePath
     Path to node.exe. Default: C:\Program Files\nodejs\node.exe
@@ -22,16 +25,17 @@
     Port the service listens on. Default: 3000
 
 .EXAMPLE
-    .\install-service.ps1
-    Installs with all defaults (E:\SageSync, SageSync, port 3000).
+    .\scripts\install-service.ps1
+    Run from the install dir (e.g. E:\SageSync). Installs with all defaults
+    (that dir, service SageSync, port 3000).
 
 .EXAMPLE
-    .\install-service.ps1 -InstallDir "D:\apps\SageSync" -Port 3001
+    .\scripts\install-service.ps1 -InstallDir "D:\apps\SageSync" -Port 3001
     Installs with custom directory and port.
 #>
 
 param(
-    [string]$InstallDir = "E:\SageSync",
+    [string]$InstallDir = (Split-Path -Parent $PSScriptRoot),
     [string]$NodePath = "C:\Program Files\nodejs\node.exe",
     [string]$ServiceName = "SageSync",
     [int]$Port = 3000

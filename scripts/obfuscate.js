@@ -35,6 +35,7 @@ const COPY_AS_IS = [
     'SECURITY.md',
     'public',
     'config.json',
+    'scripts/install-service.ps1',  // Instalador del servicio (Servy); setup-automap.js NO se distribuye: crea almacenes en Fracttal
     '.env.example',
     'tests',  // Incluir suite de tests para QA en cliente
 ];
@@ -236,6 +237,7 @@ async function main() {
         '.env.*.local',
         '.fracttal-token',
         '.sage-credentials',
+        'config.local.json',
         'logs/',
         '*.log',
         '.DS_Store',
