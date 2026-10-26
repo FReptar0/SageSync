@@ -53,6 +53,7 @@ Full decision log for v1.1 is preserved in `.planning/milestones/v1.1-ROADMAP.md
 | 261008-jdr | Programar solo la carga diaria en el servicio (12, 16 y 23 h) y dejar la carga completa manual | 2026-10-08 | d122022 | [261008-jdr-programar-solo-la-carga-diaria-en-el-ser](./quick/261008-jdr-programar-solo-la-carga-diaria-en-el-ser/) |
 | 261008-on6 | Configuracion de almacenes por servidor fuera de git e install-service.ps1 en el dist | 2026-10-09 | 66ce494 | [261008-on6-configuracion-de-almacenes-por-servidor-](./quick/261008-on6-configuracion-de-almacenes-por-servidor-/) |
 | fast | npm run install-service / uninstall-service usan Servy (apuntaban a src/service-installer.js, que no existe) | 2026-10-09 | 67da3ac | — |
+| fast | SYNC_DRY_RUN=true: el servidor solo simula (servicio, dashboard y npm run sync), sin escribir en Fracttal; ya no hay sandbox | 2026-10-26 | 634f6c9 | — |
 
 ### Deferred Items (acknowledged at v1.1 close)
 
