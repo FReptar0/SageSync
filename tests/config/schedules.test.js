@@ -2,8 +2,8 @@
 
 /**
  * Unit tests for src/config/schedules.js — the pure resolver/describer for
- * SYNC_CRON_SCHEDULE (full load), SYNC_DAILY_CRON_SCHEDULE (daily/delta load)
- * and SYNC_TIMEZONE.
+ * SYNC_CRON_SCHEDULE (full load), SYNC_DAILY_CRON_SCHEDULE (daily/delta load),
+ * SYNC_TIMEZONE and SYNC_DRY_RUN.
  *
  * Uses the real node-cron validator. Every test passes an explicit env object;
  * nothing here reads or depends on process.env.
@@ -11,6 +11,7 @@
 
 const {
     resolveSyncSchedules,
+    resolveSyncDryRun,
     describeSyncSchedules,
     SYNC_MODE_LABELS
 } = require('../../src/config/schedules');
@@ -21,6 +22,7 @@ describe('resolveSyncSchedules', () => {
             full: '0 2 * * *',
             daily: null,
             timezone: 'America/Mexico_City',
+            dryRun: false,
             errors: []
         });
     });
@@ -42,6 +44,7 @@ describe('resolveSyncSchedules', () => {
             full: null,
             daily: '0 12,16,23 * * *',
             timezone: 'America/Mexico_City',
+            dryRun: false,
             errors: []
         });
     });
@@ -127,7 +130,54 @@ describe('resolveSyncSchedules', () => {
     });
 });
 
+describe('SYNC_DRY_RUN', () => {
+    test.each(['true', 'TRUE', ' True ', '1', 'yes', 'si', 'sí', 'on'])(
+        'SYNC_DRY_RUN=%p turns the dry-run on without errors',
+        (value) => {
+            expect(resolveSyncDryRun({ SYNC_DRY_RUN: value })).toEqual({ dryRun: true, error: null });
+        }
+    );
+
+    test.each([undefined, '', 'false', 'FALSE', '0', 'no', 'off'])(
+        'SYNC_DRY_RUN=%p keeps writes on without errors',
+        (value) => {
+            expect(resolveSyncDryRun({ SYNC_DRY_RUN: value })).toEqual({ dryRun: false, error: null });
+        }
+    );
+
+    test('an unrecognized value fails safe (dry-run) and names the variable and the value', () => {
+        expect(resolveSyncDryRun({ SYNC_DRY_RUN: ' ture ' })).toEqual({
+            dryRun: true,
+            error: 'SYNC_DRY_RUN="ture" no es válido (usa "true" para solo simular sin escribir en Fracttal, o "false" para escribir)'
+        });
+    });
+
+    test('resolveSyncSchedules carries dryRun and reports an invalid value with the other errors', () => {
+        const ok = resolveSyncSchedules({
+            SYNC_CRON_SCHEDULE: 'off',
+            SYNC_DAILY_CRON_SCHEDULE: '0 12,16,23 * * *',
+            SYNC_DRY_RUN: 'true'
+        });
+        expect(ok.dryRun).toBe(true);
+        expect(ok.errors).toEqual([]);
+
+        const bad = resolveSyncSchedules({ SYNC_TIMEZONE: 'Mars/Olympus', SYNC_DRY_RUN: 'tal vez' });
+        expect(bad.dryRun).toBe(true);
+        expect(bad.errors).toHaveLength(2);
+        expect(bad.errors[1].startsWith('SYNC_DRY_RUN="tal vez"')).toBe(true);
+    });
+});
+
 describe('describeSyncSchedules', () => {
+    test('dry-run is announced at the end', () => {
+        expect(describeSyncSchedules({
+            full: null,
+            daily: '0 12,16,23 * * *',
+            timezone: 'America/Mexico_City',
+            dryRun: true
+        })).toBe('Completa: sin horario (manual) · Diaria: 0 12,16,23 * * * · Zona: America/Mexico_City · Modo: SIMULACIÓN (no escribe en Fracttal)');
+    });
+
     test('production recipe', () => {
         expect(describeSyncSchedules({
             full: null,

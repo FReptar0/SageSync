@@ -4,6 +4,7 @@
  * Unit tests for src/controllers/syncController.js:
  * - runSyncWithTracking picks the load by mode ('full' -> syncInventory,
  *   'daily' -> syncInventoryMoved) and records the mode in the sync history;
+ * - SYNC_DRY_RUN=true turns every run into a dry-run (no writes to Fracttal);
  * - manualSync (dashboard button = manual full load) runs in the background
  *   and a failing run never becomes an unhandled rejection.
  *
@@ -27,12 +28,14 @@ let errorSpy;
 
 beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.SYNC_DRY_RUN;
     // runSyncWithTracking prints emojis to the console; keep test output clean.
     logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
+    delete process.env.SYNC_DRY_RUN;
     logSpy.mockRestore();
     errorSpy.mockRestore();
 });
@@ -45,7 +48,7 @@ describe('runSyncWithTracking', () => {
         await runSyncWithTracking(sm);
 
         expect(syncInventory).toHaveBeenCalledTimes(1);
-        expect(syncInventory).toHaveBeenCalledWith();
+        expect(syncInventory).toHaveBeenCalledWith({ dryRun: false });
         expect(syncInventoryMoved).not.toHaveBeenCalled();
         expect(sm.getHistory()[0]).toMatchObject({ success: true, mode: 'full', processedItems: 3 });
     });
@@ -57,10 +60,34 @@ describe('runSyncWithTracking', () => {
         await runSyncWithTracking(sm, { mode: 'daily' });
 
         expect(syncInventoryMoved).toHaveBeenCalledTimes(1);
-        expect(syncInventoryMoved).toHaveBeenCalledWith();
+        expect(syncInventoryMoved).toHaveBeenCalledWith({ dryRun: false });
         expect(syncInventory).not.toHaveBeenCalled();
         expect(sm.getHistory()[0].mode).toBe('daily');
         expect(sm.getState().lastResult.mode).toBe('daily');
+    });
+
+    test.each([
+        ['daily', syncInventoryMoved],
+        ['full', syncInventory]
+    ])('SYNC_DRY_RUN=true runs the %s load as a dry-run', async (mode, loadFn) => {
+        process.env.SYNC_DRY_RUN = 'true';
+        loadFn.mockResolvedValue({ dryRun: true, processedItems: 2, errors: 0 });
+        const sm = new SyncStateManager();
+
+        await runSyncWithTracking(sm, { mode });
+
+        expect(loadFn).toHaveBeenCalledWith({ dryRun: true });
+        expect(sm.getHistory()[0]).toMatchObject({ success: true, mode, dryRun: true });
+    });
+
+    test('an invalid SYNC_DRY_RUN fails safe and still runs as a dry-run', async () => {
+        process.env.SYNC_DRY_RUN = 'ture';
+        syncInventoryMoved.mockResolvedValue({ dryRun: true, processedItems: 0 });
+        const sm = new SyncStateManager();
+
+        await runSyncWithTracking(sm, { mode: 'daily' });
+
+        expect(syncInventoryMoved).toHaveBeenCalledWith({ dryRun: true });
     });
 
     test('an unknown mode falls back to the full load', async () => {
@@ -114,6 +141,23 @@ describe('manualSync (dashboard button = manual full load)', () => {
         expect(history).toHaveLength(1);
         expect(history[0]).toMatchObject({ success: false, error: 'SQL no disponible', mode: 'full' });
         expect(sm.isInProgress()).toBe(false);
+    });
+
+    test('with SYNC_DRY_RUN=true the dashboard button only simulates the full load', async () => {
+        process.env.SYNC_DRY_RUN = 'true';
+        syncInventory.mockResolvedValue({ dryRun: true, processedItems: 1, errors: 0 });
+        const sm = new SyncStateManager();
+        const req = { app: { locals: { syncStateManager: sm } } };
+        const res = { status: jest.fn(), json: jest.fn() };
+        res.status.mockReturnValue(res);
+        res.json.mockReturnValue(res);
+
+        manualSync(req, res, jest.fn());
+        await flush();
+        await flush();
+
+        expect(syncInventory).toHaveBeenCalledWith({ dryRun: true });
+        expect(sm.getHistory()[0]).toMatchObject({ success: true, mode: 'full', dryRun: true });
     });
 
     test('a sync already in progress answers 409 and starts nothing', async () => {

@@ -88,6 +88,8 @@ SYNC_CRON_SCHEDULE=off
 SYNC_DAILY_CRON_SCHEDULE=0 12,16,23 * * *
 # Zona horaria de todos los horarios
 SYNC_TIMEZONE=America/Mexico_City
+# true = este servidor solo simula: lee Sage y Fracttal pero no escribe (servicio, dashboard y npm run sync)
+SYNC_DRY_RUN=false
 SYNC_BATCH_SIZE=100
 SYNC_TIMEOUT=30000
 SYNC_ON_STARTUP=false
@@ -108,6 +110,7 @@ NODE_ENV=production
 - `SYNC_CRON_SCHEDULE` (carga COMPLETA): vacía = `0 2 * * *` (comportamiento anterior); `off`, `false`, `none` o `disabled` = no se programa. La carga completa siempre se puede correr a mano con el botón de sincronizar del dashboard (`POST /api/sync`) o con `npm run sync`.
 - `SYNC_DAILY_CRON_SCHEDULE` (carga DIARIA/delta): vacía u `off` = no se programa. Solo toma lo que se movió hoy.
 - `SYNC_TIMEZONE`: zona horaria IANA, default `America/Mexico_City`, independiente de la zona horaria del Windows Server.
+- `SYNC_DRY_RUN`: `true` = modo simulación para todo el servidor. Las corridas programadas, el botón del dashboard, `SYNC_ON_STARTUP` y `npm run sync` leen Sage y Fracttal pero no escriben nada en Fracttal; el arranque lo anuncia con `Modo: SIMULACIÓN`. Vacía o `false` = escribe. Sirve para dejar el servicio corriendo en un servidor de pruebas que apunta a Fracttal de producción, o para instalarlo en producción antes de la carga inicial y pasarlo a `false` después.
 - Cualquier valor inválido hace que el servicio NO arranque (exit 1); el mensaje nombra la variable y el valor (ver `logs/servy-stderr.log`).
 
 **Mapeo de almacenes:**

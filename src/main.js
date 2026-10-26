@@ -22,13 +22,13 @@ const { runSyncWithTracking } = require('./controllers/syncController');
 // Validate environment variables first (exits on missing vars)
 validateEnv();
 
-// Horarios inválidos (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE):
-// abortar aquí, antes del gate de licencia y de cualquier cron.schedule (node-cron
-// lanza excepción con valores como "off"). console.error igual que validateEnv: el
-// transporte de archivo de winston puede no escribir antes del exit, y bajo Servy
-// stderr queda en logs/servy-stderr.log.
+// Horarios inválidos (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE) o
+// SYNC_DRY_RUN inválido: abortar aquí, antes del gate de licencia y de cualquier
+// cron.schedule (node-cron lanza excepción con valores como "off"). console.error igual
+// que validateEnv: el transporte de archivo de winston puede no escribir antes del exit,
+// y bajo Servy stderr queda en logs/servy-stderr.log.
 if (config.syncSchedules.errors.length > 0) {
-    console.error('[CONFIG ERROR] Horarios de sincronización inválidos:');
+    console.error('[CONFIG ERROR] Configuración de sincronización inválida:');
     for (const error of config.syncSchedules.errors) {
         console.error('  - ' + error);
     }
@@ -75,6 +75,9 @@ async function startServer() {
     // (COMPLETA / DIARIA delta), con zona horaria explícita (SYNC_TIMEZONE).
     // Cada tick revalida la licencia (LIC-02) y se salta si ya hay una en progreso.
     console.log(`Sincronización programada: ${scheduleDescription}`);
+    if (config.syncSchedules.dryRun) {
+        logger.warn('MODO SIMULACIÓN (SYNC_DRY_RUN=true): ninguna sincronización de este servidor escribe en Fracttal');
+    }
     registerSyncSchedules(config.syncSchedules, syncStateManager);
 
     // Rutas principales

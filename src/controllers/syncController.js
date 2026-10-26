@@ -1,6 +1,6 @@
 const { asyncHandler } = require('../middleware/errorHandler');
 const { syncInventory, syncInventoryMoved } = require('../app');
-const { SYNC_MODE_LABELS } = require('../config/schedules');
+const { SYNC_MODE_LABELS, resolveSyncDryRun } = require('../config/schedules');
 const logger = require('../config/logger');
 
 const manualSync = asyncHandler(async (req, res) => {
@@ -82,18 +82,23 @@ const getSyncHistory = asyncHandler(async (req, res) => {
 // Función auxiliar para ejecutar sincronización con tracking.
 // mode 'full' (default) = carga COMPLETA (syncInventory): botón del dashboard y SYNC_ON_STARTUP.
 // mode 'daily' = carga DIARIA/delta (syncInventoryMoved): cron programado (syncScheduler).
+// Con SYNC_DRY_RUN=true en el .env toda corrida es simulación: lee Sage y Fracttal,
+// nunca escribe en Fracttal. Un valor inválido también simula (main.js ya no arranca con él).
 async function runSyncWithTracking(syncStateManager, { mode = 'full' } = {}) {
     const syncMode = mode === 'daily' ? 'daily' : 'full';
-    const label = SYNC_MODE_LABELS[syncMode];
+    const { dryRun } = resolveSyncDryRun(process.env);
+    const label = dryRun
+        ? `${SYNC_MODE_LABELS[syncMode]} en modo SIMULACIÓN (SYNC_DRY_RUN=true, no escribe en Fracttal)`
+        : SYNC_MODE_LABELS[syncMode];
     const startTime = syncStateManager.startSync();
-    
+
     try {
         console.log(`\n🔄 Iniciando sincronización ${label}...`);
         logger.info(`Iniciando sincronización ${label}`);
-        
+
         const result = syncMode === 'daily'
-            ? await syncInventoryMoved()
-            : await syncInventory();
+            ? await syncInventoryMoved({ dryRun })
+            : await syncInventory({ dryRun });
         
         syncStateManager.endSync({ success: true, data: result, mode: syncMode }, startTime);
         

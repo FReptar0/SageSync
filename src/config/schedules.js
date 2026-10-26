@@ -11,6 +11,10 @@
  *                               off-value -> not scheduled.
  *   - SYNC_TIMEZONE             IANA zone used for every cron.schedule.
  *                               Empty -> 'America/Mexico_City' (GitHub #3).
+ *   - SYNC_DRY_RUN              true -> every sync this server runs (cron ticks, the
+ *                               dashboard button, SYNC_ON_STARTUP, npm run sync) is a
+ *                               dry-run: reads Sage and Fracttal, never writes to Fracttal.
+ *                               Empty/false -> writes as usual.
  *
  * Pure on purpose: no logging, no process.exit, and the environment is only read
  * through the parameter. Invalid values are reported in `errors` (Spanish, one
@@ -26,6 +30,8 @@ const DEFAULT_FULL_SCHEDULE = '0 2 * * *';
 const DEFAULT_TIMEZONE = 'America/Mexico_City';
 const OFF_VALUES = new Set(['off', 'false', 'none', 'disabled']);
 const NOT_SCHEDULED = 'sin horario (manual)';
+const DRY_RUN_TRUE_VALUES = new Set(['true', '1', 'yes', 'si', 'sí', 'on']);
+const DRY_RUN_FALSE_VALUES = new Set(['false', '0', 'no', 'off']);
 
 /** Spanish label per load type, shared by logs and the dashboard description. */
 const SYNC_MODE_LABELS = Object.freeze({ full: 'COMPLETA', daily: 'DIARIA (delta)' });
@@ -35,6 +41,7 @@ const SYNC_MODE_LABELS = Object.freeze({ full: 'COMPLETA', daily: 'DIARIA (delta
  * @property {string|null} full     cron for the FULL load (syncInventory); null = not scheduled
  * @property {string|null} daily    cron for the DAILY/delta load (syncInventoryMoved); null = not scheduled
  * @property {string} timezone      IANA zone used for every cron.schedule
+ * @property {boolean} dryRun       true = this server never writes to Fracttal (SYNC_DRY_RUN)
  * @property {string[]} errors      Spanish, one per invalid variable; non-empty => caller must exit(1)
  */
 
@@ -55,6 +62,27 @@ function isValidTimezone(timeZone) {
     } catch (error) {
         return false;
     }
+}
+
+/**
+ * Resolves SYNC_DRY_RUN. An unrecognized value fails safe: `dryRun` is true and
+ * `error` explains the variable, so a typo never turns writes on.
+ *
+ * @param {Object} [env=process.env]
+ * @returns {{dryRun: boolean, error: string|null}}
+ */
+function resolveSyncDryRun(env = process.env) {
+    const value = normalize(env.SYNC_DRY_RUN).toLowerCase();
+    if (value === '' || DRY_RUN_FALSE_VALUES.has(value)) {
+        return { dryRun: false, error: null };
+    }
+    if (DRY_RUN_TRUE_VALUES.has(value)) {
+        return { dryRun: true, error: null };
+    }
+    return {
+        dryRun: true,
+        error: `SYNC_DRY_RUN="${normalize(env.SYNC_DRY_RUN)}" no es válido (usa "true" para solo simular sin escribir en Fracttal, o "false" para escribir)`
+    };
 }
 
 /**
@@ -105,12 +133,19 @@ function resolveSyncSchedules(env = process.env) {
         }
     }
 
-    return { full, daily, timezone, errors };
+    // Dry-run switch for the whole server (cron ticks, dashboard button, CLI).
+    const { dryRun, error: dryRunError } = resolveSyncDryRun(env);
+    if (dryRunError) {
+        errors.push(dryRunError);
+    }
+
+    return { full, daily, timezone, dryRun, errors };
 }
 
 /**
  * One-line Spanish description for the boot banner and the dashboard, e.g.
  * 'Completa: sin horario (manual) · Diaria: 0 12,16,23 * * * · Zona: America/Mexico_City'.
+ * With SYNC_DRY_RUN=true it ends with ' · Modo: SIMULACIÓN (no escribe en Fracttal)'.
  *
  * @param {SyncSchedules} schedules
  * @returns {string}
@@ -118,7 +153,8 @@ function resolveSyncSchedules(env = process.env) {
 function describeSyncSchedules(schedules) {
     const full = schedules.full || NOT_SCHEDULED;
     const daily = schedules.daily || NOT_SCHEDULED;
-    return `Completa: ${full} · Diaria: ${daily} · Zona: ${schedules.timezone}`;
+    const description = `Completa: ${full} · Diaria: ${daily} · Zona: ${schedules.timezone}`;
+    return schedules.dryRun ? `${description} · Modo: SIMULACIÓN (no escribe en Fracttal)` : description;
 }
 
-module.exports = { resolveSyncSchedules, describeSyncSchedules, SYNC_MODE_LABELS };
+module.exports = { resolveSyncSchedules, resolveSyncDryRun, describeSyncSchedules, SYNC_MODE_LABELS };

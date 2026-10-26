@@ -423,9 +423,11 @@ Restart-Service SageSync
 
 El dashboard sigue arriba, no se programa ninguna carga y las cargas manuales siguen funcionando (botón del dashboard / `POST /api/sync`, `npm run sync`, `npm run sync:moved`). Al boot debe verse `Sincronización programada: Completa: sin horario (manual) · Diaria: sin horario (manual) · Zona: America/Mexico_City`.
 
-> **Importante:** poner una expresión cron inválida **ya NO sirve** como workaround. Desde este cambio, un valor inválido en `SYNC_CRON_SCHEDULE`, `SYNC_DAILY_CRON_SCHEDULE` o `SYNC_TIMEZONE` detiene el servicio al arrancar (exit 1; el motivo queda en `logs/servy-stderr.log`).
+> **Importante:** poner una expresión cron inválida **ya NO sirve** como workaround. Desde este cambio, un valor inválido en `SYNC_CRON_SCHEDULE`, `SYNC_DAILY_CRON_SCHEDULE`, `SYNC_TIMEZONE` o `SYNC_DRY_RUN` detiene el servicio al arrancar (exit 1; el motivo queda en `logs/servy-stderr.log`).
 
 Alternativa: parar el servicio por completo con `Stop-Service SageSync` (se cae también el dashboard).
+
+**Dejar los horarios corriendo pero sin escribir (modo simulación):** poner `SYNC_DRY_RUN=true` en `.env` y reiniciar. Cada corrida programada, el botón del dashboard y `npm run sync` hacen lo mismo que un `--dry-run`: leen Sage y Fracttal y no escriben nada en Fracttal. En `logs/servy-stdout.log` el arranque termina con `Modo: SIMULACIÓN (no escribe en Fracttal)`, y en `logs/sagesync.log` cada corrida dice `[DRY-RUN] Simulación DIARIA (delta) completada — no se realizó ninguna escritura a Fracttal`. Para volver a escribir: `SYNC_DRY_RUN=false` y `Restart-Service SageSync`. Un valor que no sea `true`/`false` detiene el arranque; en `npm run sync`, aborta antes de tocar Sage o Fracttal.
 
 ### 9.4 Saltarse la verificación de licencia para troubleshooting (NO USAR EN PRODUCCIÓN)
 

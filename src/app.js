@@ -7,7 +7,7 @@ const FracttalClient = require('./services/fracttalClient');
 const ConfigManager = require('./config/configManager');
 // Horarios del modo headless. NUNCA requerir ./services/syncScheduler aquí:
 // syncScheduler → syncController → app sería un require circular.
-const { resolveSyncSchedules, SYNC_MODE_LABELS } = require('./config/schedules');
+const { resolveSyncSchedules, resolveSyncDryRun, SYNC_MODE_LABELS } = require('./config/schedules');
 const cron = require('node-cron');
 const logger = require('./config/logger');
 require('dotenv').config();
@@ -561,10 +561,12 @@ async function runHeadlessSync(mode) {
     }
     headlessSyncInProgress = true;
     try {
+        // SYNC_DRY_RUN=true: el modo headless también solo simula (start() ya validó el valor)
+        const { dryRun } = resolveSyncDryRun(process.env);
         if (mode === 'daily') {
-            await syncInventoryMoved();
+            await syncInventoryMoved({ dryRun });
         } else {
-            await syncInventory();
+            await syncInventory({ dryRun });
         }
     } catch (error) {
         logger.error(`Error en sincronización ${label} (modo headless):`, error);
@@ -574,11 +576,11 @@ async function runHeadlessSync(mode) {
 }
 
 async function start() {
-    // Horarios (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE): si alguno
-    // es inválido, abortar antes de cualquier llamada de red o cron (mismo mensaje que main.js).
+    // Horarios (SYNC_CRON_SCHEDULE, SYNC_DAILY_CRON_SCHEDULE, SYNC_TIMEZONE) y SYNC_DRY_RUN:
+    // si alguno es inválido, abortar antes de cualquier llamada de red o cron (mismo mensaje que main.js).
     const schedules = resolveSyncSchedules(process.env);
     if (schedules.errors.length > 0) {
-        console.error('[CONFIG ERROR] Horarios de sincronización inválidos:');
+        console.error('[CONFIG ERROR] Configuración de sincronización inválida:');
         for (const error of schedules.errors) {
             console.error('  - ' + error);
         }

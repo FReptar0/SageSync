@@ -59,8 +59,8 @@ Sync runs on a cron schedule (default `0 2 * * *` — 2 AM daily) and can also b
 | `database.js` | MSSQL connection pool singleton | `query(text, params)`, `testConnection()`, `connect()`, `disconnect()` |
 | `license.js` | Reads `LICENSE_API_URL`, `HMAC_SECRET`, `SAGESYNC_API_KEY` from env | `{ apiUrl, hmacSecret, apiKey }` |
 | `logger.js` | Winston singleton with rotation + JSON format | `info`, `warn`, `error`, `debug` |
-| `schedules.js` | Pure resolver for the sync schedules. `SYNC_CRON_SCHEDULE` (full load): empty → `0 2 * * *`, `off`/`false`/`none`/`disabled` → not scheduled. `SYNC_DAILY_CRON_SCHEDULE` (daily/delta load): empty or an off-value → not scheduled. `SYNC_TIMEZONE`: default `America/Mexico_City`. Invalid values are returned in `errors` (Spanish) and the entry points exit 1 | `resolveSyncSchedules(env)`, `describeSyncSchedules(schedules)`, `SYNC_MODE_LABELS` |
-| `server.js` | Reads `PORT`, `SYNC_ON_STARTUP`, log/pagination defaults; resolves `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE` through `schedules.js` | `{ port, syncSchedules: { full, daily, timezone, errors }, syncOnStartup, logs, pagination }` |
+| `schedules.js` | Pure resolver for the sync schedules. `SYNC_CRON_SCHEDULE` (full load): empty → `0 2 * * *`, `off`/`false`/`none`/`disabled` → not scheduled. `SYNC_DAILY_CRON_SCHEDULE` (daily/delta load): empty or an off-value → not scheduled. `SYNC_TIMEZONE`: default `America/Mexico_City`. `SYNC_DRY_RUN`: `true` → every sync the server runs is a dry-run; an unrecognized value fails safe (dry-run) and is reported. Invalid values are returned in `errors` (Spanish) and the entry points exit 1 | `resolveSyncSchedules(env)`, `resolveSyncDryRun(env)`, `describeSyncSchedules(schedules)`, `SYNC_MODE_LABELS` |
+| `server.js` | Reads `PORT`, `SYNC_ON_STARTUP`, log/pagination defaults; resolves `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE` through `schedules.js` | `{ port, syncSchedules: { full, daily, timezone, dryRun, errors }, syncOnStartup, logs, pagination }` |
 
 ### `src/middleware/`
 
@@ -87,7 +87,7 @@ All routers are mounted at `/api`. The order matters: `requireLicense` wraps eve
 | File | Owns |
 |------|------|
 | `systemController.js` | `/api/status` (composite health), `/api/test/connections` |
-| `syncController.js` | `/api/sync` (kicks off a background full load), `/api/sync/status`, `/api/sync/history`. Exports `runSyncWithTracking(syncStateManager, { mode })`: `'full'` (default) runs `syncInventory`, `'daily'` runs `syncInventoryMoved`; the history records the mode. Used by `syncScheduler` and `SYNC_ON_STARTUP` |
+| `syncController.js` | `/api/sync` (kicks off a background full load), `/api/sync/status`, `/api/sync/history`. Exports `runSyncWithTracking(syncStateManager, { mode })`: `'full'` (default) runs `syncInventory`, `'daily'` runs `syncInventoryMoved`; the history records the mode. With `SYNC_DRY_RUN=true` both run with `{ dryRun: true }` (the CLI `src/sync.js` and headless mode honor it too). Used by `syncScheduler` and `SYNC_ON_STARTUP` |
 | `sageController.js` | `/api/sage/*` — stats + paginated inventory reads |
 | `fracttalController.js` | `/api/fracttal/warehouses` — passes through |
 | `logsController.js` | `/api/logs*` — date filtering, stats, debug `/api/logs/test` |
@@ -114,7 +114,7 @@ All routers are mounted at `/api`. The order matters: `requireLicense` wraps eve
 Boot sequence (top-to-bottom):
 
 1. Require deps & config.
-2. `validateEnv()` → exits if any required env var missing. Then exits 1 if `config.syncSchedules.errors` is non-empty (invalid `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE`).
+2. `validateEnv()` → exits if any required env var missing. Then exits 1 if `config.syncSchedules.errors` is non-empty (invalid `SYNC_CRON_SCHEDULE` / `SYNC_DAILY_CRON_SCHEDULE` / `SYNC_TIMEZONE` / `SYNC_DRY_RUN`).
 3. `startServer()`:
    1. `validateLicense({ startup: true })` — retries 3× with backoff, exits on failure.
    2. Build Express app.
