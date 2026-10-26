@@ -127,7 +127,11 @@ class LogParser {
                         });
                     }
 
-                    logContent.push(...filteredLines);
+                    // Sin spread: push(...lineas) con decenas de miles de líneas revienta
+                    // la pila ("Maximum call stack size exceeded") después de una carga grande.
+                    for (const line of filteredLines) {
+                        logContent.push(line);
+                    }
                 } catch (error) {
                     console.error(`Error leyendo archivo de log ${logFile}:`, error);
                     logContent.push({
