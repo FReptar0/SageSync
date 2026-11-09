@@ -182,8 +182,8 @@ async function syncInventory(options = {}) {
                         field_1: sageItem.Description?.trim() || itemCode,
                         id_type_item: 4,
                         code_warehouse: fracttalWarehouse,
-                        unit_code: 'UN',
-                        unit_description: 'Unidad',
+                        unit_code: 'PZA', // misma unidad que los artículos que ya existen en Fracttal
+                        unit_description: 'PIEZA',
                         stock: 0,
                         min_stock_level: adjustmentData.min_stock_level,
                         max_stock_level: adjustmentData.max_stock_level,
@@ -452,8 +452,8 @@ async function syncInventoryMoved(options = {}) {
                         field_1: sageItem.Description?.trim() || itemCode,
                         id_type_item: 4,
                         code_warehouse: fracttalWarehouse,
-                        unit_code: 'UN',
-                        unit_description: 'Unidad',
+                        unit_code: 'PZA', // misma unidad que los artículos que ya existen en Fracttal
+                        unit_description: 'PIEZA',
                         stock: 0,
                         min_stock_level: adjustmentData.min_stock_level,
                         max_stock_level: adjustmentData.max_stock_level,
