@@ -13,6 +13,8 @@ const encPath = (v) => encodeURIComponent(String(v));
 // (200) created from this company ... please try again after 1 minute"). Ante un 429 se
 // espera lo que pida Retry-After (o 1 minuto) y se repite la misma petición.
 const MAX_RETRIES_429 = 5;
+// Un token que vence en menos de 5 minutos ya no se usa: se pide otro.
+const TOKEN_RENEW_MARGIN_MS = 5 * 60 * 1000;
 const retryAfterMs = (headers) => {
     const seconds = parseInt((headers || {})['retry-after'], 10);
     return (seconds > 0 ? seconds : 60) * 1000;
@@ -104,9 +106,11 @@ class FracttalClient {
                     logger.warn('Token expirado, renovando...');
 
                     try {
-                        // Limpiar token actual
+                        // Limpiar token actual, también el guardado en .fracttal-token: es el
+                        // que Fracttal acaba de rechazar, y si se recarga se reintenta con él.
                         this.accessToken = null;
                         this.tokenExpiry = null;
+                        this.configManager.clearToken();
                         
                         // Obtener nuevo token
                         const newToken = await this.getAccessToken();
@@ -173,12 +177,15 @@ class FracttalClient {
                 console.log(`📅 Expira: ${this.tokenExpiry.toISOString()}`);
                 console.log(`⏰ Tiempo restante: ${minutesUntilExpiry} minutos`);
                 
-                if (timeUntilExpiry > 0) {
+                // Un token por vencer se reemplaza ya, en vez de usarlo hasta el último segundo.
+                if (timeUntilExpiry > TOKEN_RENEW_MARGIN_MS) {
                     logger.info('Token cargado desde archivo, válido hasta:', this.tokenExpiry.toISOString());
                     return this.accessToken;
                 } else {
-                    console.log(`⚠️  Token expirado hace ${Math.abs(minutesUntilExpiry)} minutos, necesita renovación`);
-                    // Token expirado, limpiar y continuar con nueva autenticación
+                    console.log(timeUntilExpiry > 0
+                        ? `⚠️  Token guardado vence en ${minutesUntilExpiry} minutos, se pide uno nuevo`
+                        : `⚠️  Token expirado hace ${Math.abs(minutesUntilExpiry)} minutos, necesita renovación`);
+                    // Token vencido o por vencer, limpiar y continuar con nueva autenticación
                     this.accessToken = null;
                     this.refreshToken = null;
                     this.tokenExpiry = null;
@@ -276,7 +283,7 @@ class FracttalClient {
             const minutesUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60));
             
             // Si el token expira en más de 5 minutos, está bien usarlo
-            if (timeUntilExpiry > (5 * 60 * 1000)) {
+            if (timeUntilExpiry > TOKEN_RENEW_MARGIN_MS) {
                 return this.accessToken;
             }
             
