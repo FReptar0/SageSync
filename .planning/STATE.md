@@ -55,6 +55,7 @@ Full decision log for v1.1 is preserved in `.planning/milestones/v1.1-ROADMAP.md
 | fast | npm run install-service / uninstall-service usan Servy (apuntaban a src/service-installer.js, que no existe) | 2026-10-09 | 67da3ac | — |
 | fast | SYNC_DRY_RUN=true: el servidor solo simula (servicio, dashboard y npm run sync), sin escribir en Fracttal; ya no hay sandbox | 2026-10-26 | 634f6c9 | — |
 | fast | Artículos nuevos con unidad PZA (PIEZA) y rotación real de sagesync.log y error.log (maxsize en bytes, tailable), para la carga a SAGESYNC-PROD | 2026-11-09 | 3f0badd, 864b410 | — |
+| fast | Límite de Fracttal (200 peticiones/min por compañía, HTTP 429): ritmo de 180/min (FRACTTAL_REQUESTS_PER_MINUTE), reintento al 429, almacén consultado una vez por corrida y artículos saltados contados como error | 2026-11-09 | 569a8e8, 0da3878 | — |
 
 ### Deferred Items (acknowledged at v1.1 close)
 
