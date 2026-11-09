@@ -85,34 +85,34 @@ async function syncInventory(options = {}) {
                     continue;
                 }
 
-                // Asegurar que el almacén existe.
+                // Asegurar que el almacén existe, una sola vez por corrida: no cambia a
+                // media carga y Fracttal limita las peticiones por minuto.
                 // En dry-run: solo consultar; nunca crear. En modo real: crear si no existe (comportamiento original).
-                if (dryRun) {
+                // Si la consulta falla, el item cuenta como error para que el resumen no lo esconda.
+                const almacenYaRevisado = warehousesCreated.includes(fracttalWarehouse)
+                    || warehousesMissing.includes(fracttalWarehouse);
+                if (!almacenYaRevisado && dryRun) {
                     try {
                         await fracttal.getWarehouseByCode(fracttalWarehouse);
-                        if (!warehousesCreated.includes(fracttalWarehouse)) {
-                            warehousesCreated.push(fracttalWarehouse);
-                        }
+                        warehousesCreated.push(fracttalWarehouse);
                     } catch (warehouseError) {
                         if (warehouseError.response && warehouseError.response.status === 404) {
-                            if (!warehousesMissing.includes(fracttalWarehouse)) {
-                                warehousesMissing.push(fracttalWarehouse);
-                                logger.warn(`[DRY-RUN] Almacén ${fracttalWarehouse} no existe en Fracttal — se crearía en modo real`);
-                            }
+                            warehousesMissing.push(fracttalWarehouse);
+                            logger.warn(`[DRY-RUN] Almacén ${fracttalWarehouse} no existe en Fracttal — se crearía en modo real`);
                             // Continuamos para clasificar el item como Case C (item nuevo en almacén nuevo).
                         } else {
-                            logger.error(`[DRY-RUN] Error consultando almacén ${fracttalWarehouse}:`, warehouseError.message);
+                            errors++;
+                            logger.error(`[DRY-RUN] Error consultando almacén ${fracttalWarehouse}: ${warehouseError.message}`);
                             continue;
                         }
                     }
-                } else {
+                } else if (!almacenYaRevisado) {
                     try {
                         await fracttal.ensureWarehouseExists(fracttalWarehouse);
-                        if (!warehousesCreated.includes(fracttalWarehouse)) {
-                            warehousesCreated.push(fracttalWarehouse);
-                        }
+                        warehousesCreated.push(fracttalWarehouse);
                     } catch (warehouseError) {
-                        logger.error(`Error asegurando que el almacén ${fracttalWarehouse} existe:`, warehouseError.message);
+                        errors++;
+                        logger.error(`Error asegurando que el almacén ${fracttalWarehouse} existe: ${warehouseError.message}`);
                         continue;
                     }
                 }
@@ -124,7 +124,7 @@ async function syncInventory(options = {}) {
                     itemStatus = await fracttal.checkItemExistsInWarehouse(itemCode, fracttalWarehouse);
                 } catch (statusError) {
                     errors++;
-                    logger.error(`${tag}Error consultando estado del item ${itemCode}:`, statusError.message);
+                    logger.error(`${tag}Error consultando estado del item ${itemCode}: ${statusError.message}`);
                     continue;
                 }
 
@@ -222,7 +222,7 @@ async function syncInventory(options = {}) {
 
             } catch (itemError) {
                 errors++;
-                logger.error(`${tag}Error procesando item ${sageItem.ItemNumber}:`, itemError.message);
+                logger.error(`${tag}Error procesando item ${sageItem.ItemNumber}: ${itemError.message}`);
 
                 // No detener el proceso por errores individuales
                 continue;
@@ -355,34 +355,34 @@ async function syncInventoryMoved(options = {}) {
                     continue;
                 }
 
-                // Asegurar que el almacén existe.
+                // Asegurar que el almacén existe, una sola vez por corrida: no cambia a
+                // media carga y Fracttal limita las peticiones por minuto.
                 // En dry-run: solo consultar; nunca crear. En modo real: crear si no existe (comportamiento original).
-                if (dryRun) {
+                // Si la consulta falla, el item cuenta como error para que el resumen no lo esconda.
+                const almacenYaRevisado = warehousesCreated.includes(fracttalWarehouse)
+                    || warehousesMissing.includes(fracttalWarehouse);
+                if (!almacenYaRevisado && dryRun) {
                     try {
                         await fracttal.getWarehouseByCode(fracttalWarehouse);
-                        if (!warehousesCreated.includes(fracttalWarehouse)) {
-                            warehousesCreated.push(fracttalWarehouse);
-                        }
+                        warehousesCreated.push(fracttalWarehouse);
                     } catch (warehouseError) {
                         if (warehouseError.response && warehouseError.response.status === 404) {
-                            if (!warehousesMissing.includes(fracttalWarehouse)) {
-                                warehousesMissing.push(fracttalWarehouse);
-                                logger.warn(`[DRY-RUN] Almacén ${fracttalWarehouse} no existe en Fracttal — se crearía en modo real`);
-                            }
+                            warehousesMissing.push(fracttalWarehouse);
+                            logger.warn(`[DRY-RUN] Almacén ${fracttalWarehouse} no existe en Fracttal — se crearía en modo real`);
                             // Continuamos para clasificar el item como Case C (item nuevo en almacén nuevo).
                         } else {
-                            logger.error(`[DRY-RUN] Error consultando almacén ${fracttalWarehouse}:`, warehouseError.message);
+                            errors++;
+                            logger.error(`[DRY-RUN] Error consultando almacén ${fracttalWarehouse}: ${warehouseError.message}`);
                             continue;
                         }
                     }
-                } else {
+                } else if (!almacenYaRevisado) {
                     try {
                         await fracttal.ensureWarehouseExists(fracttalWarehouse);
-                        if (!warehousesCreated.includes(fracttalWarehouse)) {
-                            warehousesCreated.push(fracttalWarehouse);
-                        }
+                        warehousesCreated.push(fracttalWarehouse);
                     } catch (warehouseError) {
-                        logger.error(`Error asegurando que el almacén ${fracttalWarehouse} existe:`, warehouseError.message);
+                        errors++;
+                        logger.error(`Error asegurando que el almacén ${fracttalWarehouse} existe: ${warehouseError.message}`);
                         continue;
                     }
                 }
@@ -394,7 +394,7 @@ async function syncInventoryMoved(options = {}) {
                     itemStatus = await fracttal.checkItemExistsInWarehouse(itemCode, fracttalWarehouse);
                 } catch (statusError) {
                     errors++;
-                    logger.error(`${tag}Error consultando estado del item ${itemCode}:`, statusError.message);
+                    logger.error(`${tag}Error consultando estado del item ${itemCode}: ${statusError.message}`);
                     continue;
                 }
 
@@ -492,7 +492,7 @@ async function syncInventoryMoved(options = {}) {
 
             } catch (itemError) {
                 errors++;
-                logger.error(`${tag}Error procesando item ${sageItem.ItemNumber}:`, itemError.message);
+                logger.error(`${tag}Error procesando item ${sageItem.ItemNumber}: ${itemError.message}`);
 
                 // No detener el proceso por errores individuales
                 continue;
