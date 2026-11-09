@@ -9,6 +9,15 @@ require('dotenv').config();
 // because the space wasn't encoded.
 const encPath = (v) => encodeURIComponent(String(v));
 
+// Fracttal limita las peticiones por compañía y responde HTTP 429 ("Too many requests
+// (200) created from this company ... please try again after 1 minute"). Ante un 429 se
+// espera lo que pida Retry-After (o 1 minuto) y se repite la misma petición.
+const MAX_RETRIES_429 = 5;
+const retryAfterMs = (headers) => {
+    const seconds = parseInt((headers || {})['retry-after'], 10);
+    return (seconds > 0 ? seconds : 60) * 1000;
+};
+
 class FracttalClient {
     constructor() {
         this.baseURL = process.env.FRACTTAL_BASE_URL || 'https://app.fracttal.com/api';
@@ -19,6 +28,13 @@ class FracttalClient {
         this.refreshToken = null;
         this.tokenExpiry = null;
         this.configManager = new ConfigManager();
+
+        // Espaciar las peticiones para no rebasar el límite de Fracttal (200 por minuto por
+        // compañía). 180 por defecto deja margen a otros usos de la misma compañía.
+        const configuredPerMinute = parseInt(process.env.FRACTTAL_REQUESTS_PER_MINUTE, 10);
+        const requestsPerMinute = configuredPerMinute > 0 ? configuredPerMinute : 180;
+        this.requestIntervalMs = Math.ceil(60000 / requestsPerMinute);
+        this.nextRequestAt = 0;
 
         this.client = axios.create({
             baseURL: this.baseURL,
@@ -31,6 +47,7 @@ class FracttalClient {
 
         // Interceptor para agregar token automáticamente
         this.client.interceptors.request.use(async (config) => {
+            await this.waitForRequestSlot();
             const token = await this.getAccessToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
@@ -43,7 +60,19 @@ class FracttalClient {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                
+
+                // Límite de peticiones de Fracttal: esperar y repetir la misma petición en
+                // vez de perder el item. Tras MAX_RETRIES_429 intentos, el error sigue su curso.
+                if (error.response && error.response.status === 429 && originalRequest) {
+                    originalRequest._retries429 = (originalRequest._retries429 || 0) + 1;
+                    if (originalRequest._retries429 <= MAX_RETRIES_429) {
+                        const waitMs = retryAfterMs(error.response.headers);
+                        logger.warn(`Fracttal limitó las peticiones (429). Reintento ${originalRequest._retries429}/${MAX_RETRIES_429} en ${Math.round(waitMs / 1000)} s: ${originalRequest.url}`);
+                        await this.sleep(waitMs);
+                        return this.client.request(originalRequest);
+                    }
+                }
+
                 // Verificar si es error UNAUTHORIZED_ENDPOINT
                 if (error.response && 
                     error.response.status === 401 && 
@@ -109,6 +138,22 @@ class FracttalClient {
                 return Promise.reject(error);
             }
         );
+    }
+
+    // Reserva el siguiente turno para hablar con Fracttal y espera si hace falta, para no
+    // pasar de FRACTTAL_REQUESTS_PER_MINUTE. Si las respuestas ya tardan más que el
+    // intervalo, no espera nada.
+    async waitForRequestSlot() {
+        const now = Date.now();
+        const slot = Math.max(now, this.nextRequestAt);
+        this.nextRequestAt = slot + this.requestIntervalMs;
+        if (slot > now) {
+            await this.sleep(slot - now);
+        }
+    }
+
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     async authenticate() {
